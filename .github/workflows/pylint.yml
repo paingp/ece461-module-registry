@@ -2,8 +2,7 @@ name: Pylint
 
 on: [push]
 
-exclude: 
-  - src/python
+ignore: src/python
 
 jobs:
   build:
