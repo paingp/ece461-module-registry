@@ -30,7 +30,7 @@ func (NoLog) Write([]byte) (int, error) {
 func main() {
 
 	fmt.Println("Aditya Srikanth")
-	fmt.Println("Here now")
+
 
 	doLogging := true
 	logFileName := os.Getenv("LOG_FILE")
@@ -71,8 +71,6 @@ func main() {
 		var tempURL = scanner.Text()
 		tempURL = getGithubUrl(tempURL)
 		hold = newRepo(tempURL)
-		fmt.Println(tempURL)
-		fmt.Println("Here now\n\n\n")
 		InfoLogger.Println("New repo created successfully")
 		// Adds repository to Linked List in sorted order by net score
 		head = addRepo(head, head.next, hold)
