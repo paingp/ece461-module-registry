@@ -20,6 +20,9 @@ jobs:
       run: |
         python -m pip install --upgrade pip
         pip install pylint
-    - name: Analysing the code with pylint
+    - name: Analysing the server with pylint
       run: |
-        pylint $(git ls-files '*.py')
+        pylint $(git ls-files 'server/*.py')
+    - name: Analysing the client with pylint
+      run: |
+        pylint $(git ls-files 'client/*.py')
