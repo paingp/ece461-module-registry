@@ -6,17 +6,9 @@ import (
 	"log"
 	// "math"
 	// "utils"
-	"encoding/json"
-	"fmt"
-	"io"
-	"net/http"
 	"os"
-	"strings"
-)
 
-var (
-	DebugLogger *log.Logger
-	InfoLogger  *log.Logger
+	"github.com/hugoday/ECE461ProjectCLI/src/go/ratom"
 )
 
 type NoLog int
@@ -26,8 +18,6 @@ func (NoLog) Write([]byte) (int, error) {
 }
 
 func main() {
-
-	fmt.Println("Aditya Srikanth")
 
 	doLogging := true
 	logFileName := os.Getenv("LOG_FILE")
@@ -39,40 +29,40 @@ func main() {
 
 	if doLogging {
 		if logLevel == "2" {
-			DebugLogger = log.New(logFile, "DEBUG: ", log.Ldate|log.Ltime|log.Lshortfile)
+			ratom.DebugLogger = log.New(logFile, "DEBUG: ", log.Ldate|log.Ltime|log.Lshortfile)
 		} else {
-			DebugLogger = log.New(new(NoLog), "DEBUG: ", log.Ldate|log.Ltime|log.Lshortfile)
+			ratom.DebugLogger = log.New(new(NoLog), "DEBUG: ", log.Ldate|log.Ltime|log.Lshortfile)
 		}
-		InfoLogger = log.New(logFile, "INFO: ", log.Ldate|log.Ltime|log.Lshortfile)
+		ratom.InfoLogger = log.New(logFile, "INFO: ", log.Ldate|log.Ltime|log.Lshortfile)
 	} else {
-		DebugLogger = log.New(new(NoLog), "DEBUG: ", log.Ldate|log.Ltime|log.Lshortfile)
-		InfoLogger = log.New(new(NoLog), "INFO: ", log.Ldate|log.Ltime|log.Lshortfile)
+		ratom.DebugLogger = log.New(new(NoLog), "DEBUG: ", log.Ldate|log.Ltime|log.Lshortfile)
+		ratom.InfoLogger = log.New(new(NoLog), "INFO: ", log.Ldate|log.Ltime|log.Lshortfile)
 	}
 
 	// Makes sure repository folder is clear
-	clearRepoFolder()
+	ratom.ClearRepoFolder()
 
 	// Opens URL file and creates a scanner
 	file, _ := os.Open(os.Args[1])
 	scanner := bufio.NewScanner(file)
 
 	// Create head and temporary repo nodes
-	var head *repo
-	var hold *repo
-	head = &repo{URL: "HEAD"}
+	var head *ratom.Repo
+	var hold *ratom.Repo
+	head = &ratom.Repo{URL: "HEAD"}
 
-	InfoLogger.Println("Beginning URL file read")
+	ratom.InfoLogger.Println("Beginning URL file read")
 	// for each url in the file
 	for scanner.Scan() {
 		//Create new repositories with current URL scanned
-		hold = newRepo(getGithubUrl(scanner.Text()))
-		InfoLogger.Println("New repo created successfully")
+		hold = ratom.NewRepo(scanner.Text())
+		ratom.InfoLogger.Println("New repo created successfully")
 		// Adds repository to Linked List in sorted order by net score
-		head = addRepo(head, head.next, hold)
+		head = ratom.AddRepo(head, head.Next, hold)
 	}
 
 	// Prints each repository in NDJSON format to stdout (sorted highest to low based off net score)
-	printRepo(head.next)
+	ratom.PrintRepo(head.Next)
 }
 
 // Function to get the GitHub URL from the npmurl input

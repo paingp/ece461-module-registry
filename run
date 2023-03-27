@@ -29,7 +29,8 @@ def main(argv):
     else:
         #URL file maybe
         if not fileExists(arg): return 1
-        os.system("go run ./src/go/main.go ./src/go/URLs.go " + arg)
+        os.system("go run ./src/go/main.go " + arg)
+        #os.system("go run ./src/go/main.go ./src/go/ratom/URLs.go " + arg)
         return 0
     return 1
 
