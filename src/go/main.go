@@ -6,7 +6,6 @@ import (
 	"log"
 	// "math"
 	// "utils"
-
 	"os"
 
 	"github.com/hugoday/ECE461ProjectCLI/src/go/ratom"
@@ -64,4 +63,44 @@ func main() {
 
 	// Prints each repository in NDJSON format to stdout (sorted highest to low based off net score)
 	ratom.PrintRepo(head.Next)
+}
+
+// Function to get the GitHub URL from the npmurl input
+func getGithubUrl(url string) string {
+	before, after, found := strings.Cut(url, "www")
+	//Finding endpoints and checking for their existence
+	if found {
+		npmEndpoint := before + "registry" + after
+		npmEndpoint = strings.Replace(npmEndpoint, "com", "org", 1)
+		npmEndpoint = strings.Replace(npmEndpoint, "package/", "", 1)
+
+		resp, err := http.Get(npmEndpoint)
+
+		if err != nil {
+			return ""
+		}
+
+		if resp.StatusCode == http.StatusOK {
+			bodyBytes, err := io.ReadAll(resp.Body)
+
+			if err != nil {
+				return ""
+			}
+
+			bodyString := string(bodyBytes)
+			resBytes := []byte(bodyString)
+			var npmRes map[string]interface{}
+			_ = json.Unmarshal(resBytes, &npmRes)
+
+			bugs := npmRes["bugs"].(map[string]interface{})
+			npmEndpoint = bugs["url"].(string)
+
+			if npmEndpoint == "" {
+				return ""
+			}
+
+			url = strings.Replace(npmEndpoint, "/issues", "", 1)
+		}
+	}
+	return url
 }
