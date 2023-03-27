@@ -1,5 +1,4 @@
 package ratom
-
 // package imports
 
 import (
@@ -136,7 +135,7 @@ func RemoveScores() {
 func GetRampUpTime(url string) float64 {
 	InfoLogger.Println("Getting ramp up time for ", url)
 	var command string
-	command = "python3 src/python/RampUpTime.py"
+	command = "python3 src/python/rampUpTime.py"
 	r := subprocess.New(command, subprocess.Shell)
 	r.Exec()
 	dat, err := os.ReadFile("src/metric_scores/RampUpTime/RU_Result.txt")
