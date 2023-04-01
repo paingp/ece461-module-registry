@@ -2,11 +2,17 @@ package main
 
 import (
 	"bufio"
+	"encoding/json"
+	"io"
+
 	// "fmt"
 	"log"
 	// "math"
-	// "utils"
+	"net/http"
 	"os"
+	"strings"
+
+	// "utils"
 
 	"github.com/hugoday/ECE461ProjectCLI/src/go/ratom"
 )
