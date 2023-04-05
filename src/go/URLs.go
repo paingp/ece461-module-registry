@@ -6,17 +6,24 @@ import (
 	"bufio"
 	"fmt"
 	"log"
+	"io"
+	"encoding/json"
+	"context"
 	"math"
+	"net/http"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"regexp"
 	"strconv"
 	"strings"
+
 	// "log"
 	// "reflect"
 
 	"github.com/estebangarcia21/subprocess"
+	"golang.org/x/oauth2"
+	//"google.golang.org/grpc/credentials/local"
 )
 
 // * START OF REPO STRUCTS * \\
@@ -32,6 +39,8 @@ type repo struct {
 	rampUpTime           float64
 	busFactor            float64
 	licenseCompatibility float64
+	dependency 			 float64
+	locPRCR				 float64
 	netScore             float64
 	next                 *repo
 }
@@ -46,19 +55,72 @@ func newRepo(url string) *repo {
 	r.licenseCompatibility = getLicenseCompatibility(r.URL)
 	r.rampUpTime = getRampUpTime(r.URL)
 	r.responsiveness = getResponsiveness(r.URL)
+	apiUrl := getEndpoint(url)
+	npmRes := getResp(apiUrl)
+	r.dependency = getDependency(npmRes)
+	r.locPRCR = getLoc(npmRes)
 	if (r.busFactor == -1) || (r.correctness == -1) || (r.responsiveness == -1) || (r.rampUpTime == -1) || (r.licenseCompatibility == -1) {
 		r.netScore = -1
 	} else {
 		r.netScore = ((75 * r.licenseCompatibility) + (15 * r.busFactor) + (20 * r.responsiveness) + (20 * r.rampUpTime) + (20 * r.correctness)) / 150
 	}
 	clearRepoFolder()
-
 	InfoLogger.Println("Done getting metrics for ", url)
 
 	return &r
 }
 
 // * END OF REPO STRUCTS * \\
+
+//Get the endpoint and turn into https format
+func getEndpoint(url string) string {
+	index := strings.Index(url, "github")
+	url = "https://api." + strings.Replace(url[index:], "/", "/repos/", 1)
+	return url
+}
+
+func getResp(url string) map[string]interface{}{
+	src := oauth2.StaticTokenSource(
+		&oauth2.Token{AccessToken: os.Getenv("GITHUB_TOKEN")},
+	)
+	httpClient := oauth2.NewClient(context.Background(), src)
+
+	resp, error := httpClient.Get(url)
+
+	if error != nil || resp.StatusCode != http.StatusOK {
+		fmt.Println("HTTP Client get failed")
+		return nil
+	}
+
+	bodyBytes, err := io.ReadAll(resp.Body)
+
+	if err != nil {
+		return nil
+	}
+
+	bodyString := string(bodyBytes)
+	resBytes := []byte(bodyString)
+	var npmRes map[string]interface{}
+	_ = json.Unmarshal(resBytes, &npmRes)
+
+	return npmRes
+}
+
+// * START OF DEPENDENCY * \\
+
+func getDependency(npmRes map[string]interface{}) float64 {
+	return 0.0
+}
+
+// * END OF DEPENDENCY * \\
+
+// * START OF LOC * \\
+
+func getLoc(npmRes map[string]interface{}) float64 {
+	return 0.0
+}
+// api.github.com/repos/lodash/lodash/pulls?state=closed + go to each link 
+// * END OF LOC * \\
 
 // * START OF RESPONSIVENESS * \\
 
