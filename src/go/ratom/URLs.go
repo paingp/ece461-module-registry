@@ -1,11 +1,16 @@
 package ratom
+
 // package imports
 
 import (
 	"bufio"
+	"context"
+	"encoding/json"
 	"fmt"
+	"io"
 	"log"
 	"math"
+	"net/http"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -17,6 +22,7 @@ import (
 	// "reflect"
 
 	"github.com/estebangarcia21/subprocess"
+	"golang.org/x/oauth2"
 )
 
 var (
@@ -30,6 +36,9 @@ var (
 // Includes each metric, and the total score at the end
 // this repo struct will be the input to the linked lists,
 // where we will pass urls by accessing the repo's url
+
+
+// * END OF REPO STRUCTS * \\
 type Repo struct {
 	URL                  string
 	Responsiveness       float64
@@ -37,6 +46,8 @@ type Repo struct {
 	RampUpTime           float64
 	BusFactor            float64
 	LicenseCompatibility float64
+	Dependency           float64
+	LocPRCR              float64
 	NetScore             float64
 	Next                 *Repo
 }
@@ -51,19 +62,76 @@ func NewRepo(url string) *Repo {
 	r.LicenseCompatibility = GetLicenseCompatibility(r.URL)
 	r.RampUpTime = GetRampUpTime(r.URL)
 	r.Responsiveness = GetResponsiveness(r.URL)
+	apiUrl := getEndpoint(url)
+	npmRes := getResp(apiUrl)
+	r.Dependency = getDependency(npmRes)
+	r.LocPRCR = getLoc(npmRes)
 	if (r.BusFactor == -1) || (r.Correctness == -1) || (r.Responsiveness == -1) || (r.RampUpTime == -1) || (r.LicenseCompatibility == -1) {
 		r.NetScore = -1
 	} else {
 		r.NetScore = ((75 * r.LicenseCompatibility) + (15 * r.BusFactor) + (20 * r.Responsiveness) + (20 * r.RampUpTime) + (20 * r.Correctness)) / 150
 	}
 	ClearRepoFolder()
-
 	InfoLogger.Println("Done getting metrics for ", url)
 
 	return &r
 }
 
 // * END OF REPO STRUCTS * \\
+
+// Get the endpoint and turn into https format
+func getEndpoint(url string) string {
+	index := strings.Index(url, "github")
+	url = "https://api." + strings.Replace(url[index:], "/", "/repos/", 1)
+	return url
+}
+
+func getResp(url string) map[string]interface{} {
+	src := oauth2.StaticTokenSource(
+		&oauth2.Token{AccessToken: os.Getenv("GITHUB_TOKEN")},
+	)
+	httpClient := oauth2.NewClient(context.Background(), src)
+
+	resp, error := httpClient.Get(url)
+
+	if error != nil || resp.StatusCode != http.StatusOK {
+		fmt.Println("HTTP Client get failed")
+		return nil
+	}
+
+	bodyBytes, err := io.ReadAll(resp.Body)
+
+	if err != nil {
+		return nil
+	}
+
+	bodyString := string(bodyBytes)
+	resBytes := []byte(bodyString)
+	var npmRes map[string]interface{}
+	_ = json.Unmarshal(resBytes, &npmRes)
+
+	return npmRes
+}
+
+// * START OF DEPENDENCY * \\
+
+func getDependency(npmRes map[string]interface{}) float64 {
+	return 0.0
+}
+
+// * END OF DEPENDENCY * \\
+
+// * START OF LOC * \\
+
+func getLoc(npmRes map[string]interface{}) float64 {
+
+	fmt.Println(npmRes["pulls_url"].(string))
+
+	return 0.0
+}
+
+// api.github.com/repos/lodash/lodash/pulls?state=closed + go to each link
+// * END OF LOC * \\
 
 // * START OF Responsiveness * \\
 
