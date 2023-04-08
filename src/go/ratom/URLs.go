@@ -5,7 +5,11 @@ import (
 	"bufio"
 	"fmt"
 	"log"
+	"io"
+	"encoding/json"
+	"context"
 	"math"
+	"net/http"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -17,6 +21,8 @@ import (
 	// "reflect"
 
 	"github.com/estebangarcia21/subprocess"
+	"golang.org/x/oauth2"
+	//"google.golang.org/grpc/credentials/local"
 )
 
 var (
@@ -32,32 +38,37 @@ var (
 // where we will pass urls by accessing the repo's url
 type Repo struct {
 	URL                  string
-	Responsiveness       float64
-	Correctness          float64
-	RampUpTime           float64
-	BusFactor            float64
-	LicenseCompatibility float64
-	NetScore             float64
-	Next                 *Repo
+	responsiveness       float64
+	correctness          float64
+	rampUpTime           float64
+	busFactor            float64
+	licenseCompatibility float64
+	dependency 			 float64
+	locPRCR				 float64
+	netScore             float64
+	next                 *repo
 }
 
 // this is a function to utilize createing a new repo and initializing each metric within
 func NewRepo(url string) *Repo {
 	InfoLogger.Println("Getting metrics for new repo ", url)
-	CloneRepo(url)
-	r := Repo{URL: url}
-	r.BusFactor = GetBusFactor(r.URL)
-	r.Correctness = GetCorrectness(r.URL)
-	r.LicenseCompatibility = GetLicenseCompatibility(r.URL)
-	r.RampUpTime = GetRampUpTime(r.URL)
-	r.Responsiveness = GetResponsiveness(r.URL)
-	if (r.BusFactor == -1) || (r.Correctness == -1) || (r.Responsiveness == -1) || (r.RampUpTime == -1) || (r.LicenseCompatibility == -1) {
-		r.NetScore = -1
+	cloneRepo(url)
+	r := repo{URL: url}
+	r.busFactor = getBusFactor(r.URL)
+	r.correctness = getCorrectness(r.URL)
+	r.licenseCompatibility = getLicenseCompatibility(r.URL)
+	r.rampUpTime = getRampUpTime(r.URL)
+	r.responsiveness = getResponsiveness(r.URL)
+	apiUrl := getEndpoint(url)
+	npmRes := getResp(apiUrl)
+	r.dependency = getDependency(npmRes)
+	r.locPRCR = getLoc(npmRes)
+	if (r.busFactor == -1) || (r.correctness == -1) || (r.responsiveness == -1) || (r.rampUpTime == -1) || (r.licenseCompatibility == -1) {
+		r.netScore = -1
 	} else {
 		r.NetScore = ((75 * r.LicenseCompatibility) + (15 * r.BusFactor) + (20 * r.Responsiveness) + (20 * r.RampUpTime) + (20 * r.Correctness)) / 150
 	}
-	ClearRepoFolder()
-
+	clearRepoFolder()
 	InfoLogger.Println("Done getting metrics for ", url)
 
 	return &r
@@ -65,7 +76,60 @@ func NewRepo(url string) *Repo {
 
 // * END OF REPO STRUCTS * \\
 
-// * START OF Responsiveness * \\
+//Get the endpoint and turn into https format
+func getEndpoint(url string) string {
+	index := strings.Index(url, "github")
+	url = "https://api." + strings.Replace(url[index:], "/", "/repos/", 1)
+	return url
+}
+
+func getResp(url string) map[string]interface{}{
+	src := oauth2.StaticTokenSource(
+		&oauth2.Token{AccessToken: os.Getenv("GITHUB_TOKEN")},
+	)
+	httpClient := oauth2.NewClient(context.Background(), src)
+
+	resp, error := httpClient.Get(url)
+
+	if error != nil || resp.StatusCode != http.StatusOK {
+		fmt.Println("HTTP Client get failed")
+		return nil
+	}
+
+	bodyBytes, err := io.ReadAll(resp.Body)
+
+	if err != nil {
+		return nil
+	}
+
+	bodyString := string(bodyBytes)
+	resBytes := []byte(bodyString)
+	var npmRes map[string]interface{}
+	_ = json.Unmarshal(resBytes, &npmRes)
+
+	return npmRes
+}
+
+// * START OF DEPENDENCY * \\
+
+func getDependency(npmRes map[string]interface{}) float64 {
+	return 0.0
+}
+
+// * END OF DEPENDENCY * \\
+
+// * START OF LOC * \\
+
+func getLoc(npmRes map[string]interface{}) float64 {
+
+	fmt.Println(npmRes["pulls_url"].(string))
+
+	return 0.0
+}
+// api.github.com/repos/lodash/lodash/pulls?state=closed + go to each link 
+// * END OF LOC * \\
+
+// * START OF RESPONSIVENESS * \\
 
 // Function to get Responsiveness metric score
 func GetResponsiveness(url string) float64 {
