@@ -117,6 +117,9 @@ func getDependency(npmRes map[string]interface{}) float64 {
 // * START OF LOC * \\
 
 func getLoc(npmRes map[string]interface{}) float64 {
+
+	fmt.Println(npmRes["pulls_url"].(string))
+
 	return 0.0
 }
 // api.github.com/repos/lodash/lodash/pulls?state=closed + go to each link 
