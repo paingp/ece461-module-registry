@@ -65,7 +65,7 @@ func NewRepo(url string) *Repo {
 	apiUrl := getEndpoint(url)
 	npmRes := getResp(apiUrl)
 	r.Dependency = getDependency(npmRes)
-	r.LocPRCR = getLoc(npmRes)
+	r.LocPRCR = getLoc(apiUrl)
 	if (r.BusFactor == -1) || (r.Correctness == -1) || (r.Responsiveness == -1) || (r.RampUpTime == -1) || (r.LicenseCompatibility == -1) {
 		r.NetScore = -1
 	} else {
@@ -101,6 +101,8 @@ func getResp(url string) map[string]interface{} {
 
 	bodyBytes, err := io.ReadAll(resp.Body)
 
+	
+
 	if err != nil {
 		return nil
 	}
@@ -108,6 +110,35 @@ func getResp(url string) map[string]interface{} {
 	bodyString := string(bodyBytes)
 	resBytes := []byte(bodyString)
 	var npmRes map[string]interface{}
+	_ = json.Unmarshal(resBytes, &npmRes)
+
+	return npmRes
+}
+
+func getPRResp(url string) []map[string]interface{} {
+	src := oauth2.StaticTokenSource(
+		&oauth2.Token{AccessToken: os.Getenv("GITHUB_TOKEN")},
+	)
+	httpClient := oauth2.NewClient(context.Background(), src)
+
+	resp, error := httpClient.Get(url)
+
+	if error != nil || resp.StatusCode != http.StatusOK {
+		fmt.Println("HTTP Client get failed")
+		return nil
+	}
+
+	bodyBytes, err := io.ReadAll(resp.Body)
+
+	
+
+	if err != nil {
+		return nil
+	}
+
+	bodyString := string(bodyBytes)
+	resBytes := []byte(bodyString)
+	var npmRes []map[string]interface{}
 	_ = json.Unmarshal(resBytes, &npmRes)
 
 	return npmRes
@@ -123,17 +154,43 @@ func getDependency(npmRes map[string]interface{}) float64 {
 
 // * START OF LOC * \\
 
-func getLoc(npmRes map[string]interface{}) float64 {
+func getLoc(url string) float64 {
 
-	fmt.Println(npmRes["pulls_url"].(string))
+	var prUrl string
+	var link string
+	var sum float64
+	var total float64
+	var i int
+	var resp []map[string]interface{}
+	var resp2 map[string]interface{}
 
-	return 0.0
+	// Getting URL of closed PRs
+	prUrl = url + "/pulls?state=closed"
+
+	// Getting array of closed PRs
+	resp = getPRResp(prUrl)
+
+	// Iterating through closed PRs and adding lines introduced - deleted
+	sum = 0
+	for i = 0; i < len(resp); i++ {
+		link = resp[i]["_links"].(map[string]interface{})["self"].(map[string]interface{})["href"].(string)
+		resp2 = getResp(string(link))
+		sum = sum + resp2["additions"].(float64)
+		sum = sum - resp2["deletions"].(float64)
+	}
+
+	// Getting the total lines of code from original link
+	resp2 = getResp(url)
+
+	total = resp2["size"].(float64)
+
+	sum = sum / total
+
+	return sum
 }
 
 // api.github.com/repos/lodash/lodash/pulls?state=closed + go to each link
 // * END OF LOC * \\
-
-// * START OF Responsiveness * \\
 
 // Function to get Responsiveness metric score
 func GetResponsiveness(url string) float64 {
