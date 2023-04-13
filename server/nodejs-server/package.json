@@ -1,6 +1,6 @@
 {
   "name": "ece-461-spring-2023-project-2",
-  "version": "2.0.0",
+  "version": "2.1.0",
   "description": "API for ECE 461/Spring 2023/Project 2: A Trustworthy Module Registry",
   "main": "index.js",
   "scripts": {
