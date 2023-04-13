@@ -8,6 +8,12 @@ require (
 	github.com/shurcooL/githubv4 v0.0.0-20230305132112-efb623903184
 	golang.org/x/oauth2 v0.0.0-20221014153046-6fdb5e3db783
 )
+require (
+	cloud.google.com/go/storage v1.29.0
+	github.com/estebangarcia21/subprocess v0.0.0-20211231005935-fb739ac445af
+	github.com/shurcooL/githubv4 v0.0.0-20230305132112-efb623903184
+	golang.org/x/oauth2 v0.0.0-20221014153046-6fdb5e3db783
+)
 
 require (
 	cloud.google.com/go v0.107.0 // indirect
