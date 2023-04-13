@@ -22,6 +22,7 @@ import (
 	// "reflect"
 
 	"github.com/estebangarcia21/subprocess"
+	// "github.com/shurcooL/githubv4"
 	"golang.org/x/oauth2"
 )
 
@@ -63,8 +64,8 @@ func NewRepo(url string) *Repo {
 	r.RampUpTime = GetRampUpTime(r.URL)
 	r.Responsiveness = GetResponsiveness(r.URL)
 	apiUrl := getEndpoint(url)
-	npmRes := getResp(apiUrl)
-	r.Dependency = getDependency(npmRes)
+	// npmRes := getResp(apiUrl)
+	r.Dependency = getDependency(apiUrl)
 	r.LocPRCR = getLoc(apiUrl)
 	if (r.BusFactor == -1) || (r.Correctness == -1) || (r.Responsiveness == -1) || (r.RampUpTime == -1) || (r.LicenseCompatibility == -1) {
 		r.NetScore = -1
@@ -146,8 +147,36 @@ func getPRResp(url string) []map[string]interface{} {
 
 // * START OF DEPENDENCY * \\
 
-func getDependency(npmRes map[string]interface{}) float64 {
-	return 0.0
+func getDependency(url string) float64 {
+	// Get the owner and name of repo
+	var depUrl string
+	var resp map[string]interface{}
+	var pinned float64
+
+
+	// Getting response from dependency sbom url
+	depUrl = url + "/dependency-graph/sbom"
+	resp = getResp(depUrl)
+
+	// Getting list of packages
+	packages := resp["sbom"].(map[string]interface{})["packages"].([]interface{})
+
+	// Iterating through and counting major + minor pinned packages 
+	pinned = 0
+	for i := 0; i < len(packages); i++ {
+		// fmt.Println(packages[i].(map[string]interface{})["versionInfo"].(string))
+		version := packages[i].(map[string]interface{})["versionInfo"].(string)
+
+		if((!strings.Contains(version, "^")) && (strings.Count(version, ".") >= 2) || strings.Contains(version, "~")) {
+			pinned = pinned + 1
+		}
+	}
+
+	pinned = pinned / float64(len(packages))
+
+	fmt.Println(pinned)
+
+	return pinned
 }
 
 // * END OF DEPENDENCY * \\
