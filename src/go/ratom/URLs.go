@@ -1,11 +1,16 @@
 package ratom
+
 // package imports
 
 import (
 	"bufio"
+	"context"
+	"encoding/json"
 	"fmt"
+	"io"
 	"log"
 	"math"
+	"net/http"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -17,6 +22,8 @@ import (
 	// "reflect"
 
 	"github.com/estebangarcia21/subprocess"
+	// "github.com/shurcooL/githubv4"
+	"golang.org/x/oauth2"
 )
 
 var (
@@ -30,6 +37,9 @@ var (
 // Includes each metric, and the total score at the end
 // this repo struct will be the input to the linked lists,
 // where we will pass urls by accessing the repo's url
+
+
+// * END OF REPO STRUCTS * \\
 type Repo struct {
 	URL                  string
 	Responsiveness       float64
@@ -37,6 +47,8 @@ type Repo struct {
 	RampUpTime           float64
 	BusFactor            float64
 	LicenseCompatibility float64
+	Dependency           float64
+	LocPRCR              float64
 	NetScore             float64
 	Next                 *Repo
 }
@@ -51,13 +63,16 @@ func NewRepo(url string) *Repo {
 	r.LicenseCompatibility = GetLicenseCompatibility(r.URL)
 	r.RampUpTime = GetRampUpTime(r.URL)
 	r.Responsiveness = GetResponsiveness(r.URL)
+	apiUrl := getEndpoint(url)
+	// npmRes := getResp(apiUrl)
+	r.Dependency = getDependency(apiUrl)
+	r.LocPRCR = getLoc(apiUrl)
 	if (r.BusFactor == -1) || (r.Correctness == -1) || (r.Responsiveness == -1) || (r.RampUpTime == -1) || (r.LicenseCompatibility == -1) {
 		r.NetScore = -1
 	} else {
 		r.NetScore = ((75 * r.LicenseCompatibility) + (15 * r.BusFactor) + (20 * r.Responsiveness) + (20 * r.RampUpTime) + (20 * r.Correctness)) / 150
 	}
 	ClearRepoFolder()
-
 	InfoLogger.Println("Done getting metrics for ", url)
 
 	return &r
@@ -65,7 +80,146 @@ func NewRepo(url string) *Repo {
 
 // * END OF REPO STRUCTS * \\
 
-// * START OF Responsiveness * \\
+// Get the endpoint and turn into https format
+func getEndpoint(url string) string {
+	index := strings.Index(url, "github")
+	url = "https://api." + strings.Replace(url[index:], "/", "/repos/", 1)
+	return url
+}
+
+func getResp(url string) map[string]interface{} {
+	src := oauth2.StaticTokenSource(
+		&oauth2.Token{AccessToken: os.Getenv("GITHUB_TOKEN")},
+	)
+	httpClient := oauth2.NewClient(context.Background(), src)
+
+	resp, error := httpClient.Get(url)
+
+	if error != nil || resp.StatusCode != http.StatusOK {
+		fmt.Println("HTTP Client get failed")
+		return nil
+	}
+
+	bodyBytes, err := io.ReadAll(resp.Body)
+
+	
+
+	if err != nil {
+		return nil
+	}
+
+	bodyString := string(bodyBytes)
+	resBytes := []byte(bodyString)
+	var npmRes map[string]interface{}
+	_ = json.Unmarshal(resBytes, &npmRes)
+
+	return npmRes
+}
+
+func getPRResp(url string) []map[string]interface{} {
+	src := oauth2.StaticTokenSource(
+		&oauth2.Token{AccessToken: os.Getenv("GITHUB_TOKEN")},
+	)
+	httpClient := oauth2.NewClient(context.Background(), src)
+
+	resp, error := httpClient.Get(url)
+
+	if error != nil || resp.StatusCode != http.StatusOK {
+		fmt.Println("HTTP Client get failed")
+		return nil
+	}
+
+	bodyBytes, err := io.ReadAll(resp.Body)
+
+	
+
+	if err != nil {
+		return nil
+	}
+
+	bodyString := string(bodyBytes)
+	resBytes := []byte(bodyString)
+	var npmRes []map[string]interface{}
+	_ = json.Unmarshal(resBytes, &npmRes)
+
+	return npmRes
+}
+
+// * START OF DEPENDENCY * \\
+
+func getDependency(url string) float64 {
+	// Get the owner and name of repo
+	var depUrl string
+	var resp map[string]interface{}
+	var pinned float64
+
+
+	// Getting response from dependency sbom url
+	depUrl = url + "/dependency-graph/sbom"
+	resp = getResp(depUrl)
+
+	// Getting list of packages
+	packages := resp["sbom"].(map[string]interface{})["packages"].([]interface{})
+
+	// Iterating through and counting major + minor pinned packages 
+	pinned = 0
+	for i := 0; i < len(packages); i++ {
+		// fmt.Println(packages[i].(map[string]interface{})["versionInfo"].(string))
+		version := packages[i].(map[string]interface{})["versionInfo"].(string)
+
+		if((!strings.Contains(version, "^")) && (strings.Count(version, ".") >= 2) || strings.Contains(version, "~")) {
+			pinned = pinned + 1
+		}
+	}
+
+	pinned = pinned / float64(len(packages))
+
+	fmt.Println(pinned)
+
+	return pinned
+}
+
+// * END OF DEPENDENCY * \\
+
+// * START OF LOC * \\
+
+func getLoc(url string) float64 {
+
+	var prUrl string
+	var link string
+	var sum float64
+	var total float64
+	var i int
+	var resp []map[string]interface{}
+	var resp2 map[string]interface{}
+
+	// Getting URL of closed PRs
+	prUrl = url + "/pulls?state=closed"
+
+	// Getting array of closed PRs
+	resp = getPRResp(prUrl)
+
+	// Iterating through closed PRs and adding lines introduced - deleted
+	sum = 0
+	for i = 0; i < len(resp); i++ {
+		link = resp[i]["_links"].(map[string]interface{})["self"].(map[string]interface{})["href"].(string)
+		resp2 = getResp(string(link))
+		sum = sum + resp2["additions"].(float64)
+		sum = sum - resp2["deletions"].(float64)
+	}
+
+	// Getting the total lines of code from original link
+	resp2 = getResp(url)
+
+	total = resp2["size"].(float64)
+
+	sum = sum / total
+
+	return sum
+}
+
+// api.github.com/repos/lodash/lodash/pulls?state=closed + go to each link
+// * END OF LOC * \\
 
 // Function to get Responsiveness metric score
 func GetResponsiveness(url string) float64 {
