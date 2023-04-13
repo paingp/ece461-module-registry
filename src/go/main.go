@@ -69,6 +69,7 @@ func main() {
 
 	// Prints each repository in NDJSON format to stdout (sorted highest to low based off net score)
 	ratom.PrintRepo(head.Next)
+	ratom.SetMetadata("tmr-bucket" , "lodash.txt", head.Next)
 }
 
 // Function to get the GitHub URL from the npmurl input
