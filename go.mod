@@ -5,15 +5,10 @@ go 1.19
 require (
 	cloud.google.com/go/storage v1.29.0
 	github.com/estebangarcia21/subprocess v0.0.0-20211231005935-fb739ac445af
-	github.com/shurcooL/githubv4 v0.0.0-20230305132112-efb623903184
 	golang.org/x/oauth2 v0.0.0-20221014153046-6fdb5e3db783
 )
-require (
-	cloud.google.com/go/storage v1.29.0
-	github.com/estebangarcia21/subprocess v0.0.0-20211231005935-fb739ac445af
-	github.com/shurcooL/githubv4 v0.0.0-20230305132112-efb623903184
-	golang.org/x/oauth2 v0.0.0-20221014153046-6fdb5e3db783
-)
+
+require github.com/go-git/go-git/v5 v5.6.1
 
 require (
 	cloud.google.com/go v0.107.0 // indirect
@@ -27,7 +22,6 @@ require (
 	github.com/emirpasic/gods v1.18.1 // indirect
 	github.com/go-git/gcfg v1.5.0 // indirect
 	github.com/go-git/go-billy/v5 v5.4.1 // indirect
-	github.com/go-git/go-git/v5 v5.6.1 // indirect
 	github.com/golang/groupcache v0.0.0-20200121045136-8c9f03a8e57e // indirect
 	github.com/golang/protobuf v1.5.2 // indirect
 	github.com/google/go-cmp v0.5.9 // indirect
@@ -41,7 +35,6 @@ require (
 	github.com/sergi/go-diff v1.1.0 // indirect
 	github.com/skeema/knownhosts v1.1.0 // indirect
 	github.com/xanzy/ssh-agent v0.3.3 // indirect
-	github.com/shurcooL/graphql v0.0.0-20220606043923-3cf50f8a0a29 // indirect
 	go.opencensus.io v0.24.0 // indirect
 	golang.org/x/crypto v0.6.0 // indirect
 	golang.org/x/net v0.7.0 // indirect

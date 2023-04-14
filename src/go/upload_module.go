@@ -14,7 +14,7 @@ import (
 	"github.com/hugoday/ECE461ProjectCLI/src/go/ratom"
 )
 
-func createBucket() {
+func createBucket(bucketName string) {
 	ctx := context.Background()
 
 	// Sets your Google Cloud Platform project ID.
@@ -26,9 +26,6 @@ func createBucket() {
 		log.Fatalf("Failed to create client: %v", err)
 	}
 	defer client.Close()
-
-	// Sets the name for the new bucket.
-	bucketName := "tomr-bucket"
 
 	// Creates a Bucket instance.
 	bucket := client.Bucket(bucketName)
@@ -43,6 +40,26 @@ func createBucket() {
 	fmt.Printf("Bucket %v created.\n", bucketName)
 }
 
+func deleteBucket(bucketName string) error {
+	ctx := context.Background()
+	client, err := storage.NewClient(ctx)
+	if err != nil {
+		return fmt.Errorf("storage.NewClient: %v", err)
+	}
+	defer client.Close()
+
+	ctx, cancel := context.WithTimeout(ctx, time.Second*30)
+	defer cancel()
+
+	bucket := client.Bucket(bucketName)
+	if err := bucket.Delete(ctx); err != nil {
+		return fmt.Errorf("Bucket(%q).Delete: %v", bucketName, err)
+	}
+
+	fmt.Printf("Bucket %v deleted\n", bucketName)
+	return nil
+}
+
 func uploadModule(module string) error {
 	ctx := context.Background()
 
@@ -55,10 +72,11 @@ func uploadModule(module string) error {
 
 	// Sets the name for the new bucket.
 	bucket := "tmr-bucket"
-	_, object, _ := strings.Cut(module, "/")
+	//_, object, _ := strings.Cut(module, "/")
+	object := module
 
 	// Open local file.
-	f, err := os.Open(module)
+	f, err := os.Open("temp/" + module + ".zip")
 	if err != nil {
 		return fmt.Errorf("os.Open: %v", err)
 	}
@@ -135,77 +153,33 @@ func setMetadata(w io.Writer, bucket, object string) error {
 	return nil
 }
 
-/*
-// uploadFile uploads an object.
-func uploadFile(w io.Writer, bucket, object string) error {
-	// bucket := "bucket-name"
-	// object := "object-name"
-	ctx := context.Background()
-	client, err := storage.NewClient(ctx)
-	if err != nil {
-		return fmt.Errorf("storage.NewClient: %v", err)
-	}
-	defer client.Close()
-
-	// Open local file.
-	f, err := os.Open("notes.txt")
-	if err != nil {
-		return fmt.Errorf("os.Open: %v", err)
-	}
-	defer f.Close()
-
-	ctx, cancel := context.WithTimeout(ctx, time.Second*50)
-	defer cancel()
-
-	o := client.Bucket(bucket).Object(object)
-
-	// Optional: set a generation-match precondition to avoid potential race
-	// conditions and data corruptions. The request to upload is aborted if the
-	// object's generation number does not match your precondition.
-	// For an object that does not yet exist, set the DoesNotExist precondition.
-	o = o.If(storage.Conditions{DoesNotExist: true})
-	// If the live object already exists in your bucket, set instead a
-	// generation-match precondition using the live object's generation number.
-	// attrs, err := o.Attrs(ctx)
-	// if err != nil {
-	//      return fmt.Errorf("object.Attrs: %v", err)
-	// }
-	// o = o.If(storage.Conditions{GenerationMatch: attrs.Generation})
-
-	// Upload an object with storage.Writer.
-	wc := o.NewWriter(ctx)
-	if _, err = io.Copy(wc, f); err != nil {
-		return fmt.Errorf("io.Copy: %v", err)
-	}
-	if err := wc.Close(); err != nil {
-		return fmt.Errorf("Writer.Close: %v", err)
-	}
-	fmt.Fprintf(w, "Blob %v uploaded.\n", object)
-	return nil
-}
-*/
-
 func main() {
+	err := deleteBucket("tmr-bucket")
+	if err != nil {
+		fmt.Printf("%v", err)
+	}
 	module := ratom.Clone("https://github.com/lodash/lodash")
+
 	os.RemoveAll(module + "/.git")
-	err := ratom.ZipSource(module, module+".zip")
+
+	err = ratom.ZipSource(module, module+".zip")
 	if err != nil {
 		log.Fatalf("%v", err)
 	}
 
 	_, module, _ = strings.Cut(module, "/")
-	module += ".zip"
-	fmt.Println(module)
-	/*
-		err = uploadModule(dir)
-		if err != nil {
-			log.Fatalf("%v", err)
-		}
-	*/
+
+	err = uploadModule(module)
+	if err != nil {
+		log.Fatalf("%v", err)
+	}
+
 	var w bytes.Buffer
 	err = setMetadata(&w, "tmr-bucket", module)
 	if err != nil {
 		fmt.Printf("Set Metadata")
 		log.Fatalf("%v", err)
 	}
+
+	os.RemoveAll("temp")
 }
