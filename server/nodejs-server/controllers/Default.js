@@ -13,8 +13,8 @@ module.exports.createAuthToken = function createAuthToken (req, res, next, body)
     });
 };
 
-module.exports.packageByNameDelete = function packageByNameDelete (req, res, next, name, xAuthorization) {
-  Default.packageByNameDelete(name, xAuthorization)
+module.exports.packageByNameDelete = function packageByNameDelete (req, res, next, xAuthorization, name) {
+  Default.packageByNameDelete(xAuthorization, name)
     .then(function (response) {
       utils.writeJson(res, response);
     })
@@ -33,8 +33,8 @@ module.exports.packageByNameGet = function packageByNameGet (req, res, next, nam
     });
 };
 
-module.exports.packageByRegExGet = function packageByRegExGet (req, res, next, body, regex, xAuthorization) {
-  Default.packageByRegExGet(body, regex, xAuthorization)
+module.exports.packageByRegExGet = function packageByRegExGet (req, res, next, body, xAuthorization) {
+  Default.packageByRegExGet(body, xAuthorization)
     .then(function (response) {
       utils.writeJson(res, response);
     })
@@ -53,8 +53,8 @@ module.exports.packageCreate = function packageCreate (req, res, next, body, xAu
     });
 };
 
-module.exports.packageDelete = function packageDelete (req, res, next, id, xAuthorization) {
-  Default.packageDelete(id, xAuthorization)
+module.exports.packageDelete = function packageDelete (req, res, next, xAuthorization, id) {
+  Default.packageDelete(xAuthorization, id)
     .then(function (response) {
       utils.writeJson(res, response);
     })
@@ -73,8 +73,8 @@ module.exports.packageRate = function packageRate (req, res, next, id, xAuthoriz
     });
 };
 
-module.exports.packageRetrieve = function packageRetrieve (req, res, next, id, xAuthorization) {
-  Default.packageRetrieve(id, xAuthorization)
+module.exports.packageRetrieve = function packageRetrieve (req, res, next, xAuthorization, id) {
+  Default.packageRetrieve(xAuthorization, id)
     .then(function (response) {
       utils.writeJson(res, response);
     })

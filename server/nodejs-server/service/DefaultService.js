@@ -23,11 +23,11 @@ exports.createAuthToken = function(body) {
 /**
  * Delete all versions of this package.
  *
+ * xAuthorization AuthenticationToken 
  * name PackageName 
- * xAuthorization AuthenticationToken  (optional)
  * no response value expected for this operation
  **/
-exports.packageByNameDelete = function(name,xAuthorization) {
+exports.packageByNameDelete = function(xAuthorization,name) {
   return new Promise(function(resolve, reject) {
     resolve();
   });
@@ -38,7 +38,7 @@ exports.packageByNameDelete = function(name,xAuthorization) {
  * Return the history of this package (all versions).
  *
  * name PackageName 
- * xAuthorization AuthenticationToken  (optional)
+ * xAuthorization AuthenticationToken 
  * returns List
  **/
 exports.packageByNameGet = function(name,xAuthorization) {
@@ -83,11 +83,10 @@ exports.packageByNameGet = function(name,xAuthorization) {
  * Search for a package using regular expression over package names and READMEs. This is similar to search by name.
  *
  * body String 
- * regex PackageRegEx 
- * xAuthorization AuthenticationToken  (optional)
+ * xAuthorization AuthenticationToken 
  * returns List
  **/
-exports.packageByRegExGet = function(body,regex,xAuthorization) {
+exports.packageByRegExGet = function(body,xAuthorization) {
   return new Promise(function(resolve, reject) {
     var examples = {};
     examples['application/json'] = [ {
@@ -141,11 +140,11 @@ exports.packageCreate = function(body,xAuthorization) {
 /**
  * Delete this version of the package.
  *
+ * xAuthorization AuthenticationToken 
  * id PackageID Package ID
- * xAuthorization AuthenticationToken  (optional)
  * no response value expected for this operation
  **/
-exports.packageDelete = function(id,xAuthorization) {
+exports.packageDelete = function(xAuthorization,id) {
   return new Promise(function(resolve, reject) {
     resolve();
   });
@@ -155,21 +154,21 @@ exports.packageDelete = function(id,xAuthorization) {
 /**
  *
  * id PackageID 
- * xAuthorization AuthenticationToken  (optional)
+ * xAuthorization AuthenticationToken 
  * returns PackageRating
  **/
 exports.packageRate = function(id,xAuthorization) {
   return new Promise(function(resolve, reject) {
     var examples = {};
     examples['application/json'] = {
-  "GoodPinningPractice" : 7.061401241503109,
-  "NetScore" : 0.8008281904610115,
-  "ResponsiveMaintainer" : 5.637376656633329,
-  "LicenseScore" : 2.3021358869347655,
-  "RampUp" : 5.962133916683182,
-  "GoodEngineeringProcess" : 9.301444243932576,
-  "BusFactor" : 6.027456183070403,
-  "Correctness" : 1.4658129805029452
+  "GoodPinningPractice" : 2.3021358869347655,
+  "NetScore" : 9.301444243932576,
+  "PullRequest" : 7.061401241503109,
+  "ResponsiveMaintainer" : 5.962133916683182,
+  "LicenseScore" : 5.637376656633329,
+  "RampUp" : 1.4658129805029452,
+  "BusFactor" : 0.8008281904610115,
+  "Correctness" : 6.027456183070403
 };
     if (Object.keys(examples).length > 0) {
       resolve(examples[Object.keys(examples)[0]]);
@@ -184,11 +183,11 @@ exports.packageRate = function(id,xAuthorization) {
  * Interact with the package with this ID
  * Return this package.
  *
+ * xAuthorization AuthenticationToken 
  * id PackageID ID of package to fetch
- * xAuthorization AuthenticationToken  (optional)
  * returns Package
  **/
-exports.packageRetrieve = function(id,xAuthorization) {
+exports.packageRetrieve = function(xAuthorization,id) {
   return new Promise(function(resolve, reject) {
     var examples = {};
     examples['application/json'] = {
@@ -218,7 +217,7 @@ exports.packageRetrieve = function(id,xAuthorization) {
  *
  * body Package 
  * id PackageID 
- * xAuthorization AuthenticationToken  (optional)
+ * xAuthorization AuthenticationToken 
  * no response value expected for this operation
  **/
 exports.packageUpdate = function(body,id,xAuthorization) {
@@ -234,7 +233,7 @@ exports.packageUpdate = function(body,id,xAuthorization) {
  *
  * body List 
  * offset EnumerateOffset Provide this for pagination. If not provided, returns the first page of results. (optional)
- * xAuthorization AuthenticationToken  (optional)
+ * xAuthorization AuthenticationToken 
  * returns List
  **/
 exports.packagesList = function(body,offset,xAuthorization) {
@@ -262,7 +261,7 @@ exports.packagesList = function(body,offset,xAuthorization) {
  * Reset the registry
  * Reset the registry to a system default state.
  *
- * xAuthorization AuthenticationToken  (optional)
+ * xAuthorization AuthenticationToken 
  * no response value expected for this operation
  **/
 exports.registryReset = function(xAuthorization) {
