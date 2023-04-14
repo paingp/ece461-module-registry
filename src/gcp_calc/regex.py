@@ -7,6 +7,9 @@ bucket_name = "tmr-bucket"
 
 def find_regex_matches(regex_string):
 
+    if (len(regex_string) == 0):
+        return ""
+
     storage_client = storage.Client()
     blobs = storage_client.list_blobs(bucket_name)
 
@@ -42,4 +45,4 @@ def find_regex_matches(regex_string):
 
     return results
 
-print(find_regex_matches("lodash"))
+print(find_regex_matches("require('lodash/fp/curryN')"))
