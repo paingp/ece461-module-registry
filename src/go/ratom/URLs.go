@@ -67,6 +67,8 @@ func NewRepo(url string) *Repo {
 	// npmRes := getResp(apiUrl)
 	r.Dependency = getDependency(apiUrl)
 	r.LocPRCR = getLoc(apiUrl)
+	fmt.Printf("LOC metric: ")
+	fmt.Println(r.LocPRCR)
 	if (r.BusFactor == -1) || (r.Correctness == -1) || (r.Responsiveness == -1) || (r.RampUpTime == -1) || (r.LicenseCompatibility == -1) {
 		r.NetScore = -1
 	} else {
@@ -174,8 +176,6 @@ func getDependency(url string) float64 {
 
 	pinned = pinned / float64(len(packages))
 
-	fmt.Println(pinned)
-
 	return pinned
 }
 
@@ -211,11 +211,60 @@ func getLoc(url string) float64 {
 	// Getting the total lines of code from original link
 	resp2 = getResp(url)
 
-	total = resp2["size"].(float64)
+	total = getTotalLines()
 
 	sum = sum / total
 
 	return sum
+}
+
+func getTotalLines() float64 {
+	s := subprocess.New("(find . | grep 'src/metric_scores/repos' | xargs cat | wc -l) &> temp.txt", subprocess.Shell)
+	if err := s.Exec(); err != nil {
+		log.Fatal(err)
+	}
+	// fmt.Println("\n\n\n\n\n\n" + getLastLineWithSeek("temp.txt") + "\n\n\n\n\n\n\n\n\n\n")
+
+	r, _ := regexp.Compile("[0-9]+")
+
+	lines, _ := strconv.ParseFloat(r.FindString(getLastLineWithSeek("temp.txt")), 64)
+
+	return lines
+}
+
+func getLastLineWithSeek(filepath string) string {
+	var line string
+	var cursor int64
+    fileHandle, err := os.Open(filepath)
+
+    if err != nil {
+        return "0"
+    }
+    defer fileHandle.Close()
+
+    line = ""
+    cursor = 0
+    stat, _ := fileHandle.Stat()
+    filesize := stat.Size()
+    for { 
+        cursor -= 1
+        fileHandle.Seek(cursor, io.SeekEnd)
+
+        char := make([]byte, 1)
+        fileHandle.Read(char)
+
+        if cursor != -1 && (char[0] == 10 || char[0] == 13) { // stop if we find a line
+            break
+        }
+
+        line = fmt.Sprintf("%s%s", string(char), line) // there is more efficient way
+
+        if cursor == -filesize { // stop if we are at the begining
+            break
+        }
+    }
+
+    return line
 }
 
 // api.github.com/repos/lodash/lodash/pulls?state=closed + go to each link
