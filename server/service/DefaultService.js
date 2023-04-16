@@ -82,7 +82,7 @@ exports.packageByNameGet = function(name,xAuthorization) {
  * Get any packages fitting the regular expression.
  * Search for a package using regular expression over package names and READMEs. This is similar to search by name.
  *
- * body String 
+ * body PackageRegEx 
  * xAuthorization AuthenticationToken 
  * returns List
  **/
