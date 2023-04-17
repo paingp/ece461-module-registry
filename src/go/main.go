@@ -1,14 +1,17 @@
 package main
 
 import (
-	"archive/zip"
 	"bufio"
 	"encoding/json"
 	"fmt"
 	"io"
+	"io/ioutil"
+
+	// "io/ioutil"
 	"log"
 	"os"
 	"path/filepath"
+	"regexp"
 
 	// "fmt"
 
@@ -27,6 +30,8 @@ type NoLog int
 func (NoLog) Write([]byte) (int, error) {
 	return 0, nil
 }
+
+var files []string
 
 func main() {
 
@@ -84,25 +89,35 @@ func main() {
 	}
 	if inputType == 2 {
 
-		reader, err := zip.OpenReader("/Users/adityasrikanth/Desktop/check.zip")
-		if err != nil {
-			fmt.Print("errrr")
-			return
-		}
-		defer reader.Close()
+		// reader, err := zip.OpenReader("/Users/adityasrikanth/Desktop/check.zip")
+		ratom.Unzip("/Users/adityasrikanth/Desktop/zipTest.zip", "/Users/adityasrikanth/Desktop/zipFolder")
+		// filePath_package := ratom.Walkthrough("/Users/adityasrikanth/Desktop/zipFolder")
+		filepath.Walk("/Users/adityasrikanth/Desktop/zipFolder", VisitFile)
 
-		path, err := os.Getwd()
+		filePath_package := files[0]
+
+		jsonFile, err := os.Open(filePath_package)
+
 		if err != nil {
-			log.Println(err)
+			fmt.Println(err)
 		}
 
-		for _, f := range reader.File {
-			err := unzipFile(f, path)
-			if err != nil {
-				fmt.Print("2")
-				return
-			}
+		type Data struct {
+			Homepage string
 		}
+
+		byteValue, _ := ioutil.ReadAll(jsonFile)
+		var module_home Data
+
+		err1 := json.Unmarshal(byteValue, &module_home)
+
+		if err1 != nil {
+			fmt.Println(err1)
+		}
+
+		hold = ratom.NewRepo(module_home.Homepage)
+		// Adds repository to Linked List in sorted order by net score
+		head = ratom.AddRepo(head, head.Next, hold)
 	}
 
 	// Prints each repository in NDJSON format to stdout (sorted highest to low based off net score)
@@ -110,42 +125,31 @@ func main() {
 	ratom.SetMetadata("tmr-bucket", "lodash.txt", head.Next)
 }
 
-func unzipFile(f *zip.File, destination string) error {
-	// 4. Check if file paths are not vulnerable to Zip Slip
-	filePath := filepath.Join(destination, f.Name)
-	if !strings.HasPrefix(filePath, filepath.Clean(destination)+string(os.PathSeparator)) {
-		return fmt.Errorf("invalid file path: %s", filePath)
-	}
+func VisitFile(path string, info os.FileInfo, err error) error {
 
-	// 5. Create directory tree
-	if f.FileInfo().IsDir() {
-		if err := os.MkdirAll(filePath, os.ModePerm); err != nil {
-			return err
-		}
+	if err != nil {
+
+		fmt.Println(err)
 		return nil
 	}
 
-	if err := os.MkdirAll(filepath.Dir(filePath), os.ModePerm); err != nil {
-		return err
+	if info.IsDir() || filepath.Ext(path) != ".json" {
+
+		return nil
 	}
 
-	// 6. Create a destination file for unzipped content
-	destinationFile, err := os.OpenFile(filePath, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, f.Mode())
-	if err != nil {
-		return err
-	}
-	defer destinationFile.Close()
+	reg, err2 := regexp.Compile("^package")
 
-	// 7. Unzip the content of a file and copy it to the destination file
-	zippedFile, err := f.Open()
-	if err != nil {
-		return err
-	}
-	defer zippedFile.Close()
+	if err2 != nil {
 
-	if _, err := io.Copy(destinationFile, zippedFile); err != nil {
-		return err
+		return err2
 	}
+
+	if reg.MatchString(info.Name()) {
+
+		files = append(files, path)
+	}
+
 	return nil
 }
 
