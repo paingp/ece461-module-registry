@@ -1,15 +1,20 @@
 package main
 
 import (
+	"archive/zip"
 	"bufio"
 	"encoding/json"
+	"fmt"
 	"io"
+	"log"
+	"os"
+	"path/filepath"
 
 	// "fmt"
-	"log"
+
 	// "math"
+
 	"net/http"
-	"os"
 	"strings"
 
 	// "utils"
@@ -23,7 +28,7 @@ func (NoLog) Write([]byte) (int, error) {
 	return 0, nil
 }
 
-func main1() {
+func main() {
 
 	doLogging := true
 	logFileName := os.Getenv("LOG_FILE")
@@ -48,9 +53,13 @@ func main1() {
 	// Makes sure repository folder is clear
 	ratom.ClearRepoFolder()
 
+	var inputType int
+	fmt.Print("Input type:")
+	fmt.Scanln(&inputType)
+
 	// Opens URL file and creates a scanner
-	file, _ := os.Open(os.Args[1])
-	scanner := bufio.NewScanner(file)
+	// file, _ := os.Open(os.Args[1])
+	// scanner := bufio.NewScanner(file)
 
 	// Create head and temporary repo nodes
 	var head *ratom.Repo
@@ -58,19 +67,120 @@ func main1() {
 	head = &ratom.Repo{URL: "HEAD"}
 
 	ratom.InfoLogger.Println("Beginning URL file read")
-	// for each url in the file
-	for scanner.Scan() {
-		//Create new repositories with current URL scanned
-		hold = ratom.NewRepo(scanner.Text())
-		ratom.InfoLogger.Println("New repo created successfully")
-		// Adds repository to Linked List in sorted order by net score
-		head = ratom.AddRepo(head, head.Next, hold)
+
+	if inputType == 1 {
+		// for each url in the file
+
+		file, _ := os.Open(os.Args[1])
+		scanner := bufio.NewScanner(file)
+
+		for scanner.Scan() {
+			//Create new repositories with current URL scanned
+			hold = ratom.NewRepo(scanner.Text())
+			ratom.InfoLogger.Println("New repo created successfully")
+			// Adds repository to Linked List in sorted order by net score
+			head = ratom.AddRepo(head, head.Next, hold)
+		}
+	}
+	if inputType == 2 {
+
+		reader, err := zip.OpenReader("/Users/adityasrikanth/Desktop/check.zip")
+		if err != nil {
+			fmt.Print("errrr")
+			return
+		}
+		defer reader.Close()
+
+		path, err := os.Getwd()
+		if err != nil {
+			log.Println(err)
+		}
+
+		for _, f := range reader.File {
+			err := unzipFile(f, path)
+			if err != nil {
+				fmt.Print("2")
+				return
+			}
+		}
 	}
 
 	// Prints each repository in NDJSON format to stdout (sorted highest to low based off net score)
-	ratom.PrintRepo(head.Next)
-	ratom.SetMetadata("tmr-bucket" , "lodash.txt", head.Next)
+	// ratom.PrintRepo(head.Next)
+	ratom.SetMetadata("tmr-bucket", "lodash.txt", head.Next)
 }
+
+func unzipFile(f *zip.File, destination string) error {
+	// 4. Check if file paths are not vulnerable to Zip Slip
+	filePath := filepath.Join(destination, f.Name)
+	if !strings.HasPrefix(filePath, filepath.Clean(destination)+string(os.PathSeparator)) {
+		return fmt.Errorf("invalid file path: %s", filePath)
+	}
+
+	// 5. Create directory tree
+	if f.FileInfo().IsDir() {
+		if err := os.MkdirAll(filePath, os.ModePerm); err != nil {
+			return err
+		}
+		return nil
+	}
+
+	if err := os.MkdirAll(filepath.Dir(filePath), os.ModePerm); err != nil {
+		return err
+	}
+
+	// 6. Create a destination file for unzipped content
+	destinationFile, err := os.OpenFile(filePath, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, f.Mode())
+	if err != nil {
+		return err
+	}
+	defer destinationFile.Close()
+
+	// 7. Unzip the content of a file and copy it to the destination file
+	zippedFile, err := f.Open()
+	if err != nil {
+		return err
+	}
+	defer zippedFile.Close()
+
+	if _, err := io.Copy(destinationFile, zippedFile); err != nil {
+		return err
+	}
+	return nil
+}
+
+// func main() {
+//ratom.ClearRepoFolder()
+// 	fmt.Println("Enter input type: ")
+// 	var inputType int
+
+// 	var head *ratom.Repo
+// 	head = &ratom.Repo{URL: "HEAD"}
+
+// 	// Taking input from user
+// 	fmt.Scanln(&inputType)
+
+// 	if inputType == 1{
+// 		fmt.Println("Enter input type: ")
+// 		var url string
+// 		fmt.Scanln(&url)
+
+// 		head = handle_url(url, head)
+// 		ratom.PrintRepo(head.Next)
+// 	}
+// }
+
+// func handle_url(url string, head *ratom.Repo) *ratom.Repo {
+// 	var hold *ratom.Repo
+
+// 	url = getGithubUrl(url)
+
+// 	hold = ratom.NewRepo(url)
+// 	// head = ratom.AddRepo(head, head.Next, hold)
+// 	fmt.Print(hold)
+
+// 	return head
+// }
 
 // Function to get the GitHub URL from the npmurl input
 func getGithubUrl(url string) string {
