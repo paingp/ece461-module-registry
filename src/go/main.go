@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
+	"os/exec"
 
 	// "io/ioutil"
 	"log"
@@ -88,11 +89,21 @@ func main() {
 		}
 	}
 	if inputType == 2 {
+		path, _ := os.Getwd()
+		cmd := exec.Command("mkdir", path+"/zipTemp")
+
+		// The `Output` method executes the command and
+		// collects the output, returning its value
+		_, err := cmd.Output()
+		if err != nil {
+			// if there was any error, print it here
+			fmt.Println("could not run command: ", err)
+		}
 
 		// reader, err := zip.OpenReader("/Users/adityasrikanth/Desktop/check.zip")
-		ratom.Unzip("/Users/adityasrikanth/Desktop/zipTest.zip", "/Users/adityasrikanth/Desktop/zipFolder")
+		ratom.Unzip(os.Args[1], path+"/zipTemp")
 		// filePath_package := ratom.Walkthrough("/Users/adityasrikanth/Desktop/zipFolder")
-		filepath.Walk("/Users/adityasrikanth/Desktop/zipFolder", VisitFile)
+		filepath.Walk(path+"/zipTemp", VisitFile)
 
 		filePath_package := files[0]
 
@@ -104,6 +115,7 @@ func main() {
 
 		type Data struct {
 			Homepage string
+			Name     string
 		}
 
 		byteValue, _ := ioutil.ReadAll(jsonFile)
@@ -116,13 +128,21 @@ func main() {
 		}
 
 		hold = ratom.NewRepo(module_home.Homepage)
-		// Adds repository to Linked List in sorted order by net score
 		head = ratom.AddRepo(head, head.Next, hold)
+
+		fmt.Print(head.Next)
+
+		os.RemoveAll(path + "/zipTemp")
+
+		fmt.Print("Name: ", module_home.Name)
+		fmt.Print("\nHomepage: ", module_home.Homepage)
+
+		ratom.SetMetadata("tomr-bucket", module_home.Name, head.Next)
 	}
 
 	// Prints each repository in NDJSON format to stdout (sorted highest to low based off net score)
 	// ratom.PrintRepo(head.Next)
-	ratom.SetMetadata("tmr-bucket", "lodash.txt", head.Next)
+
 }
 
 func VisitFile(path string, info os.FileInfo, err error) error {

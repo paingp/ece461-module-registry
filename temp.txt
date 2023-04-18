@@ -1,15 +1,8 @@
 cat: ./src/go/src/metric_scores/repos: Is a directory
 cat: ./src/go/src/metric_scores/repos/test: Is a directory
-cat: ./src/go/src/metric_scores/repos/etc: Is a directory
-cat: ./src/go/src/metric_scores/repos/etc/udev: Is a directory
-cat: ./src/go/src/metric_scores/repos/etc/udev/rules.d: Is a directory
-cat: ./src/go/src/metric_scores/repos/etc/sedcli: Is a directory
-cat: ./src/go/src/metric_scores/repos/certs: Is a directory
-cat: ./src/go/src/metric_scores/repos/certs/ca: Is a directory
-cat: ./src/go/src/metric_scores/repos/certs/server: Is a directory
-cat: ./src/go/src/metric_scores/repos/certs/policies: Is a directory
-cat: ./src/go/src/metric_scores/repos/certs/client: Is a directory
-cat: ./src/go/src/metric_scores/repos/doc: Is a directory
+cat: ./src/go/src/metric_scores/repos/.github: Is a directory
+cat: ./src/go/src/metric_scores/repos/.github/workflows: Is a directory
+cat: ./src/go/src/metric_scores/repos/.internal: Is a directory
 cat: ./src/go/src/metric_scores/repos/.git: Is a directory
 cat: ./src/go/src/metric_scores/repos/.git/objects: Is a directory
 cat: ./src/go/src/metric_scores/repos/.git/objects/pack: Is a directory
@@ -26,22 +19,11 @@ cat: ./src/go/src/metric_scores/repos/.git/refs/heads: Is a directory
 cat: ./src/go/src/metric_scores/repos/.git/refs/tags: Is a directory
 cat: ./src/go/src/metric_scores/repos/.git/refs/remotes: Is a directory
 cat: ./src/go/src/metric_scores/repos/.git/refs/remotes/origin: Is a directory
-cat: ./src/go/src/metric_scores/repos/src: Is a directory
-cat: ./src/go/src/metric_scores/repos/src/lib: Is a directory
-cat: ./src/go/src/metric_scores/repos/src/lib/include: Is a directory
-cat: ./src/go/src/metric_scores/repos/src/libkmip: Is a directory
 cat: ./src/metric_scores/repos: Is a directory
 cat: ./src/metric_scores/repos/test: Is a directory
-cat: ./src/metric_scores/repos/etc: Is a directory
-cat: ./src/metric_scores/repos/etc/udev: Is a directory
-cat: ./src/metric_scores/repos/etc/udev/rules.d: Is a directory
-cat: ./src/metric_scores/repos/etc/sedcli: Is a directory
-cat: ./src/metric_scores/repos/certs: Is a directory
-cat: ./src/metric_scores/repos/certs/ca: Is a directory
-cat: ./src/metric_scores/repos/certs/server: Is a directory
-cat: ./src/metric_scores/repos/certs/policies: Is a directory
-cat: ./src/metric_scores/repos/certs/client: Is a directory
-cat: ./src/metric_scores/repos/doc: Is a directory
+cat: ./src/metric_scores/repos/.github: Is a directory
+cat: ./src/metric_scores/repos/.github/workflows: Is a directory
+cat: ./src/metric_scores/repos/.internal: Is a directory
 cat: ./src/metric_scores/repos/.git: Is a directory
 cat: ./src/metric_scores/repos/.git/objects: Is a directory
 cat: ./src/metric_scores/repos/.git/objects/pack: Is a directory
@@ -58,8 +40,4 @@ cat: ./src/metric_scores/repos/.git/refs/heads: Is a directory
 cat: ./src/metric_scores/repos/.git/refs/tags: Is a directory
 cat: ./src/metric_scores/repos/.git/refs/remotes: Is a directory
 cat: ./src/metric_scores/repos/.git/refs/remotes/origin: Is a directory
-cat: ./src/metric_scores/repos/src: Is a directory
-cat: ./src/metric_scores/repos/src/lib: Is a directory
-cat: ./src/metric_scores/repos/src/lib/include: Is a directory
-cat: ./src/metric_scores/repos/src/libkmip: Is a directory
-   25449
+  489598
