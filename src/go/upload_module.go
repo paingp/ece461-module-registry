@@ -7,11 +7,9 @@ import (
 	"io"
 	"log"
 	"os"
-	"strings"
 	"time"
 
 	"cloud.google.com/go/storage"
-	"github.com/hugoday/ECE461ProjectCLI/src/go/ratom"
 )
 
 func createBucket(bucketName string) {
@@ -153,33 +151,33 @@ func setMetadata(w io.Writer, bucket, object string) error {
 	return nil
 }
 
-func main() {
-	err := deleteBucket("tmr-bucket")
-	if err != nil {
-		fmt.Printf("%v", err)
-	}
-	module := ratom.Clone("https://github.com/lodash/lodash")
+// func main() {
+// 	err := deleteBucket("tmr-bucket")
+// 	if err != nil {
+// 		fmt.Printf("%v", err)
+// 	}
+// 	module := ratom.Clone("https://github.com/lodash/lodash")
 
-	os.RemoveAll(module + "/.git")
+// 	os.RemoveAll(module + "/.git")
 
-	err = ratom.ZipSource(module, module+".zip")
-	if err != nil {
-		log.Fatalf("%v", err)
-	}
+// 	err = ratom.ZipSource(module, module+".zip")
+// 	if err != nil {
+// 		log.Fatalf("%v", err)
+// 	}
 
-	_, module, _ = strings.Cut(module, "/")
+// 	_, module, _ = strings.Cut(module, "/")
 
-	err = uploadModule(module)
-	if err != nil {
-		log.Fatalf("%v", err)
-	}
+// 	err = uploadModule(module)
+// 	if err != nil {
+// 		log.Fatalf("%v", err)
+// 	}
 
-	var w bytes.Buffer
-	err = setMetadata(&w, "tmr-bucket", module)
-	if err != nil {
-		fmt.Printf("Set Metadata")
-		log.Fatalf("%v", err)
-	}
+// 	var w bytes.Buffer
+// 	err = setMetadata(&w, "tmr-bucket", module)
+// 	if err != nil {
+// 		fmt.Printf("Set Metadata")
+// 		log.Fatalf("%v", err)
+// 	}
 
-	os.RemoveAll("temp")
-}
+// 	os.RemoveAll("temp")
+// }
