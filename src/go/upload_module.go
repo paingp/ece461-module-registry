@@ -7,11 +7,9 @@ import (
 	"io"
 	"log"
 	"os"
-	"strings"
 	"time"
 
 	"cloud.google.com/go/storage"
-	"github.com/hugoday/ECE461ProjectCLI/src/go/ratom"
 )
 
 func createBucket(bucketName string) {
