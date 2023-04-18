@@ -32,6 +32,7 @@ func (NoLog) Write([]byte) (int, error) {
 	return 0, nil
 }
 
+
 var files []string
 
 func main() {
