@@ -161,7 +161,6 @@ func setMetadata(w io.Writer, bucket, object string) error {
 	return nil
 }
 
-<<<<<<< HEAD
 // https://stackoverflow.com/questions/71153302/how-to-set-depth-for-recursive-iteration-of-directories-in-filepath-walk-func
 // Performing a recursive iteration of directories in filepath using a walk function to find readme
 func walk(path string, d fs.DirEntry, err error) error {
@@ -186,7 +185,7 @@ func walk(path string, d fs.DirEntry, err error) error {
 	return nil
 }
 
-func main() {
+func main1() {
 	packageData := models.PackageData{}
 	//bucketName := "tomr-bucket"
 	packageData.URL = "https://www.npmjs.com/package/du"
@@ -233,23 +232,12 @@ func main() {
 
 	packageMetadata.ReadMe = string(data)
 	//fmt.Printf(packageMetadata.ReadMe)
-=======
-// func main() {
-// 	err := deleteBucket("tmr-bucket")
-// 	if err != nil {
-// 		fmt.Printf("%v", err)
-// 	}
-// 	module := ratom.Clone("https://github.com/lodash/lodash")
-
-// 	os.RemoveAll(module + "/.git")
->>>>>>> main
 
 // 	err = ratom.ZipSource(module, module+".zip")
 // 	if err != nil {
 // 		log.Fatalf("%v", err)
 // 	}
 
-<<<<<<< HEAD
 	data, err = os.ReadFile(module + ".zip")
 	if err != nil {
 		log.Fatal(err)
@@ -277,21 +265,3 @@ func main() {
 	os.RemoveAll("temp")
 
 }
-=======
-// 	_, module, _ = strings.Cut(module, "/")
-
-// 	err = uploadModule(module)
-// 	if err != nil {
-// 		log.Fatalf("%v", err)
-// 	}
-
-// 	var w bytes.Buffer
-// 	err = setMetadata(&w, "tmr-bucket", module)
-// 	if err != nil {
-// 		fmt.Printf("Set Metadata")
-// 		log.Fatalf("%v", err)
-// 	}
-
-// 	os.RemoveAll("temp")
-// }
->>>>>>> main
