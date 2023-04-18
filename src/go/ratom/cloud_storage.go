@@ -1,28 +1,17 @@
-package main
+package ratom
 
 import (
 	"bytes"
 	"context"
-	"encoding/base64"
-	"encoding/json"
 	"fmt"
 	"io"
-	"io/fs"
-	"log"
 	"os"
-	"path/filepath"
-	"regexp"
-	"strings"
 	"time"
 
 	"cloud.google.com/go/storage"
-	models "github.com/hugoday/ECE461ProjectCLI/src/go/models"
-	"github.com/hugoday/ECE461ProjectCLI/src/go/ratom"
 )
 
-var readme string
-
-func createBucket(bucketName string) error {
+func CreateBucket(bucketName string) error {
 	ctx := context.Background()
 
 	// Sets your Google Cloud Platform project ID.
@@ -46,26 +35,6 @@ func createBucket(bucketName string) error {
 	}
 
 	fmt.Printf("Bucket %v created.\n", bucketName)
-	return nil
-}
-
-func deleteBucket(bucketName string) error {
-	ctx := context.Background()
-	client, err := storage.NewClient(ctx)
-	if err != nil {
-		return fmt.Errorf("storage.NewClient: %v", err)
-	}
-	defer client.Close()
-
-	ctx, cancel := context.WithTimeout(ctx, time.Second*30)
-	defer cancel()
-
-	bucket := client.Bucket(bucketName)
-	if err := bucket.Delete(ctx); err != nil {
-		return fmt.Errorf("Bucket(%q).Delete: %v", bucketName, err)
-	}
-
-	fmt.Printf("Bucket %v deleted\n", bucketName)
 	return nil
 }
 
@@ -161,107 +130,22 @@ func setMetadata(w io.Writer, bucket, object string) error {
 	return nil
 }
 
-// https://stackoverflow.com/questions/71153302/how-to-set-depth-for-recursive-iteration-of-directories-in-filepath-walk-func
-// Performing a recursive iteration of directories in filepath using a walk function to find readme
-func walk(path string, d fs.DirEntry, err error) error {
-	maxDepth := 1
+func deleteBucket(bucketName string) error {
+	ctx := context.Background()
+	client, err := storage.NewClient(ctx)
 	if err != nil {
-		return err
+		return fmt.Errorf("storage.NewClient: %v", err)
 	}
-	if d.IsDir() && strings.Count(path, string(os.PathSeparator)) > maxDepth {
-		return fs.SkipDir
-	} else {
-		// Checking paths
-		matched, _ := regexp.MatchString(`(?i)readme`, path)
-		if matched {
-			// Checking matched path
-			check, _ := regexp.MatchString("(?i)guid", path)
-			if !check {
-				// Finding readme
-				readme = path
-			}
-		}
+	defer client.Close()
+
+	ctx, cancel := context.WithTimeout(ctx, time.Second*30)
+	defer cancel()
+
+	bucket := client.Bucket(bucketName)
+	if err := bucket.Delete(ctx); err != nil {
+		return fmt.Errorf("Bucket(%q).Delete: %v", bucketName, err)
 	}
+
+	fmt.Printf("Bucket %v deleted\n", bucketName)
 	return nil
-}
-
-func main() {
-	packageData := models.PackageData{}
-	//bucketName := "tomr-bucket"
-	packageData.URL = "https://www.npmjs.com/package/du"
-
-	/*
-		err := createBucket(bucketName)
-		if err != nil {
-			fmt.Printf("%v", err)
-		}
-	*/
-	//module := "temp/node-du"
-
-	module := ratom.GetGithubUrl(packageData.URL)
-	module = ratom.Clone(module)
-
-	os.RemoveAll(module + "/.git")
-	data, err := os.ReadFile(module + "/package.json")
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	//packageMetadata := models.PackageMetadata{}
-	var jsonMap map[string]interface{}
-	json.Unmarshal([]byte(data), &jsonMap)
-
-	packageMetadata := models.PackageMetadata{Name: jsonMap["name"].(string), Version: jsonMap["version"].(string), ID: "", ReadMe: ""}
-	fmt.Println(packageMetadata.Name)
-	fmt.Println(packageMetadata.Version)
-
-	err = filepath.WalkDir(module, walk)
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	// Error handling readme
-	if readme == "" {
-		log.Fatalf("Can't find ReadMe")
-	}
-
-	data, err = os.ReadFile(readme)
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	packageMetadata.ReadMe = string(data)
-	//fmt.Printf(packageMetadata.ReadMe)
-
-	err = ratom.ZipSource(module, module+".zip")
-	if err != nil {
-		log.Fatalf("%v", err)
-	}
-
-	data, err = os.ReadFile(module + ".zip")
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	packageData.Content = base64.StdEncoding.EncodeToString(data)
-	fmt.Printf(packageData.Content)
-
-	_, module, _ = strings.Cut(module, "/")
-
-	/*
-		err = uploadModule(module, bucketName)
-		if err != nil {
-			log.Fatalf("%v", err)
-		}
-	*/
-	/*
-		var w bytes.Buffer
-		err = setMetadata(&w, "tomr-bucket", module)
-		if err != nil {
-			fmt.Printf("Set Metadata")
-			log.Fatalf("%v", err)
-		}
-	*/
-	os.RemoveAll("temp")
-
 }

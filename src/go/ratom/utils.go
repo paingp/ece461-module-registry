@@ -2,8 +2,10 @@ package ratom
 
 import (
 	"archive/zip"
+	"encoding/json"
 	"io"
 	"log"
+	"net/http"
 	"os"
 	"path/filepath"
 	"strings"
@@ -11,8 +13,71 @@ import (
 	"github.com/go-git/go-git/v5"
 )
 
+type Module struct {
+	data     packageData
+	metadata packageData
+}
+
+type packageData struct {
+	content   string
+	url       string
+	jsprogram string
+}
+
+type packageMetadata struct {
+	name    string
+	version string
+	id      string
+	readme  string
+}
+
 func GetToken() string {
 	return os.Getenv("GITHUB_TOKEN")
+}
+
+// Function to get the GitHub URL from the npmurl input
+func GetGithubUrl(url string) string {
+	before, after, found := strings.Cut(url, "www")
+	//Finding endpoints and checking for their existence
+	if found {
+		npmEndpoint := before + "registry" + after
+		npmEndpoint = strings.Replace(npmEndpoint, "com", "org", 1)
+		npmEndpoint = strings.Replace(npmEndpoint, "package/", "", 1)
+
+		resp, err := http.Get(npmEndpoint)
+
+		if err != nil {
+			return ""
+		}
+
+		if resp.StatusCode == http.StatusOK {
+			bodyBytes, err := io.ReadAll(resp.Body)
+
+			if err != nil {
+				return ""
+			}
+
+			bodyString := string(bodyBytes)
+			resBytes := []byte(bodyString)
+			var npmRes map[string]interface{}
+			_ = json.Unmarshal(resBytes, &npmRes)
+
+			//Checking for existence of GitHub url
+			if npmRes["bugs"] == nil {
+				return ""
+			}
+
+			bugs := npmRes["bugs"].(map[string]interface{})
+			npmEndpoint = bugs["url"].(string)
+
+			if npmEndpoint == "" {
+				return ""
+			}
+
+			url = strings.Replace(npmEndpoint, "/issues", "", 1)
+		}
+	}
+	return url
 }
 
 func Clone(repo string) string {
