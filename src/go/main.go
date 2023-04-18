@@ -3,13 +3,22 @@ package main
 import (
 	"bufio"
 	"encoding/json"
+	"fmt"
 	"io"
+	"io/ioutil"
+	"os/exec"
+
+	// "io/ioutil"
+	"log"
+	"os"
+	"path/filepath"
+	"regexp"
 
 	// "fmt"
-	"log"
+
 	// "math"
+
 	"net/http"
-	"os"
 	"strings"
 
 	// "utils"
@@ -22,6 +31,9 @@ type NoLog int
 func (NoLog) Write([]byte) (int, error) {
 	return 0, nil
 }
+
+
+var files []string
 
 func main() {
 
@@ -48,9 +60,13 @@ func main() {
 	// Makes sure repository folder is clear
 	ratom.ClearRepoFolder()
 
+	var inputType int
+	fmt.Print("Input type:")
+	fmt.Scanln(&inputType)
+
 	// Opens URL file and creates a scanner
-	file, _ := os.Open(os.Args[1])
-	scanner := bufio.NewScanner(file)
+	// file, _ := os.Open(os.Args[1])
+	// scanner := bufio.NewScanner(file)
 
 	// Create head and temporary repo nodes
 	var head *ratom.Repo
@@ -58,19 +74,138 @@ func main() {
 	head = &ratom.Repo{URL: "HEAD"}
 
 	ratom.InfoLogger.Println("Beginning URL file read")
-	// for each url in the file
-	for scanner.Scan() {
-		//Create new repositories with current URL scanned
-		hold = ratom.NewRepo(scanner.Text())
-		ratom.InfoLogger.Println("New repo created successfully")
-		// Adds repository to Linked List in sorted order by net score
+
+	if inputType == 1 {
+		// for each url in the file
+
+		file, _ := os.Open(os.Args[1])
+		scanner := bufio.NewScanner(file)
+
+		for scanner.Scan() {
+			//Create new repositories with current URL scanned
+			hold = ratom.NewRepo(scanner.Text())
+			ratom.InfoLogger.Println("New repo created successfully")
+			// Adds repository to Linked List in sorted order by net score
+			head = ratom.AddRepo(head, head.Next, hold)
+		}
+	}
+	if inputType == 2 {
+		path, _ := os.Getwd()
+		cmd := exec.Command("mkdir", path+"/zipTemp")
+
+		// The `Output` method executes the command and
+		// collects the output, returning its value
+		_, err := cmd.Output()
+		if err != nil {
+			// if there was any error, print it here
+			fmt.Println("could not run command: ", err)
+		}
+
+		// reader, err := zip.OpenReader("/Users/adityasrikanth/Desktop/check.zip")
+		ratom.Unzip(os.Args[1], path+"/zipTemp")
+		// filePath_package := ratom.Walkthrough("/Users/adityasrikanth/Desktop/zipFolder")
+		filepath.Walk(path+"/zipTemp", VisitFile)
+
+		filePath_package := files[0]
+
+		jsonFile, err := os.Open(filePath_package)
+
+		if err != nil {
+			fmt.Println(err)
+		}
+
+		type Data struct {
+			Homepage string
+			Name     string
+		}
+
+		byteValue, _ := ioutil.ReadAll(jsonFile)
+		var module_home Data
+
+		err1 := json.Unmarshal(byteValue, &module_home)
+
+		if err1 != nil {
+			fmt.Println(err1)
+		}
+
+		hold = ratom.NewRepo(module_home.Homepage)
 		head = ratom.AddRepo(head, head.Next, hold)
+
+		fmt.Print(head.Next)
+
+		os.RemoveAll(path + "/zipTemp")
+
+		fmt.Print("Name: ", module_home.Name)
+		fmt.Print("\nHomepage: ", module_home.Homepage)
+
+		ratom.SetMetadata("tomr-bucket", module_home.Name, head.Next)
 	}
 
 	// Prints each repository in NDJSON format to stdout (sorted highest to low based off net score)
-	ratom.PrintRepo(head.Next)
-	ratom.SetMetadata("tmr-bucket" , "lodash.txt", head.Next)
+	// ratom.PrintRepo(head.Next)
+
 }
+
+func VisitFile(path string, info os.FileInfo, err error) error {
+
+	if err != nil {
+
+		fmt.Println(err)
+		return nil
+	}
+
+	if info.IsDir() || filepath.Ext(path) != ".json" {
+
+		return nil
+	}
+
+	reg, err2 := regexp.Compile("^package")
+
+	if err2 != nil {
+
+		return err2
+	}
+
+	if reg.MatchString(info.Name()) {
+
+		files = append(files, path)
+	}
+
+	return nil
+}
+
+// func main() {
+//ratom.ClearRepoFolder()
+// 	fmt.Println("Enter input type: ")
+// 	var inputType int
+
+// 	var head *ratom.Repo
+// 	head = &ratom.Repo{URL: "HEAD"}
+
+// 	// Taking input from user
+// 	fmt.Scanln(&inputType)
+
+// 	if inputType == 1{
+// 		fmt.Println("Enter input type: ")
+// 		var url string
+// 		fmt.Scanln(&url)
+
+// 		head = handle_url(url, head)
+// 		ratom.PrintRepo(head.Next)
+// 	}
+// }
+
+// func handle_url(url string, head *ratom.Repo) *ratom.Repo {
+// 	var hold *ratom.Repo
+
+// 	url = getGithubUrl(url)
+
+// 	hold = ratom.NewRepo(url)
+// 	// head = ratom.AddRepo(head, head.Next, hold)
+// 	fmt.Print(hold)
+
+// 	return head
+// }
 
 // Function to get the GitHub URL from the npmurl input
 func getGithubUrl(url string) string {
