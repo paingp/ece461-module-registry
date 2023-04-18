@@ -23,7 +23,7 @@ func (NoLog) Write([]byte) (int, error) {
 	return 0, nil
 }
 
-func main1() {
+func main() {
 
 	doLogging := true
 	logFileName := os.Getenv("LOG_FILE")

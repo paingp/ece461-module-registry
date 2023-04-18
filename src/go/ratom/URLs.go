@@ -67,12 +67,12 @@ func NewRepo(url string) *Repo {
 	// npmRes := getResp(apiUrl)
 	r.Dependency = getDependency(apiUrl)
 	r.LocPRCR = getLoc(apiUrl)
-	fmt.Printf("LOC metric: ")
-	fmt.Println(r.LocPRCR)
+	// fmt.Printf("LOC metric: ")
+	// fmt.Println(r.LocPRCR)
 	if (r.BusFactor == -1) || (r.Correctness == -1) || (r.Responsiveness == -1) || (r.RampUpTime == -1) || (r.LicenseCompatibility == -1) {
 		r.NetScore = -1
 	} else {
-		r.NetScore = ((75 * r.LicenseCompatibility) + (15 * r.BusFactor) + (20 * r.Responsiveness) + (20 * r.RampUpTime) + (20 * r.Correctness)) / 150
+		r.NetScore = ((75 * r.LicenseCompatibility) + (15 * r.BusFactor) + (20 * r.Responsiveness) + (20 * r.RampUpTime) + (20 * r.Correctness) + (15 * r.Dependency) + (20 * r.LocPRCR)) / 185
 	}
 	ClearRepoFolder()
 	InfoLogger.Println("Done getting metrics for ", url)
@@ -176,6 +176,14 @@ func getDependency(url string) float64 {
 
 	pinned = pinned / float64(len(packages))
 
+	if(pinned > 1.0) {
+		pinned = 1.0
+	}
+	if(pinned < 0.0 || math.IsNaN(pinned)) {
+		pinned = 0.0
+	}
+	
+
 	return pinned
 }
 
@@ -215,21 +223,52 @@ func getLoc(url string) float64 {
 
 	sum = sum / total
 
+	if(sum > 1.0) {
+		sum = 1
+	}
+	if(sum < 0.0) {
+		sum = 0.0
+	}
+
 	return sum
 }
 
 func getTotalLines() float64 {
-	s := subprocess.New("(find . | grep 'src/metric_scores/repos' | xargs cat | wc -l) &> temp.txt", subprocess.Shell)
+	s := subprocess.New("cloc --csv src/metric_scores/repos &> temp.txt", subprocess.Shell)
 	if err := s.Exec(); err != nil {
 		log.Fatal(err)
 	}
-	// fmt.Println("\n\n\n\n\n\n" + getLastLineWithSeek("temp.txt") + "\n\n\n\n\n\n\n\n\n\n")
 
-	r, _ := regexp.Compile("[0-9]+")
+	r, _ := regexp.Compile("SUM,[0-9]+,[0-9]+,([0-9]+)")
 
-	lines, _ := strconv.ParseFloat(r.FindString(getLastLineWithSeek("temp.txt")), 64)
+	file, err := os.Open("temp.txt")
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer file.Close()
 
-	return lines
+	scanner := bufio.NewScanner(file)
+
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	for scanner.Scan() {
+		str := r.FindString(scanner.Text())
+		if(str != "") {
+			temp := strings.Split(str, ",")
+
+			comments, _ := strconv.ParseFloat(temp[1], 64)
+			blank, _ := strconv.ParseFloat(temp[2], 64)
+			code, _ := strconv.ParseFloat(temp[3], 64)
+			return comments + blank + code
+		}
+	}
+
+	if err := scanner.Err(); err != nil {
+		log.Fatal(err)
+	}
+	return -1
 }
 
 func getLastLineWithSeek(filepath string) string {
