@@ -19,7 +19,7 @@ func TestGetResponsiveness(t *testing.T) {
 
 	testUrl := "github.com/hugoday/resume"
 	// cloneRepo(testUrl)
-	resp := ratom.GetResp(testURL)
+	resp := ratom.GetResp(testUrl)
 	responsiveness := ratom.GetResponsiveness(resp)
 	fmt.Println(responsiveness)
 
