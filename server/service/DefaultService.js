@@ -264,7 +264,7 @@ exports.packagesList = function(body,offset,xAuthorization) {
  * xAuthorization AuthenticationToken 
  * no response value expected for this operation
  **/
-exports.registryReset = function(xAuthorization) {
+exports.RegistryReset = function(xAuthorization) {
   return new Promise(function(resolve, reject) {
     resolve();
   });

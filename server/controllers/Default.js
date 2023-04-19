@@ -103,8 +103,21 @@ module.exports.packagesList = function packagesList (req, res, next, body, offse
     });
 };
 
-module.exports.registryReset = function registryReset (req, res, next, xAuthorization) {
-  Default.registryReset(xAuthorization)
+module.exports.RegistryReset = function RegistryReset (req, res, next, xAuthorization) {
+
+  let auth_code = "ABC"
+  xAuthorization = req.headers['x-authorization'];
+
+  if (xAuthorization == auth_code){
+    res.status(200).send("Registry is reset.");
+    
+  } else if (xAuthorization == "") {
+    res.status(400).send("There is missing field(s) in the AuthenticationToken or it is formed improperly, or the AuthenticationToken is invalid.There is missing field(s) in the AuthenticationToken or it is formed improperly, or the AuthenticationToken is invalid.");
+  } else {
+    res.status(401).send("You do not have permission to reset the registry.");
+  }
+
+  Default.RegistryReset(xAuthorization)
     .then(function (response) {
       utils.writeJson(res, response);
     })
