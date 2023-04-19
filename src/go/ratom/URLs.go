@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"io"
 	"log"
+	"time"
 	"math"
 	"net/http"
 	"os"
@@ -22,6 +23,7 @@ import (
 	// "reflect"
 
 	"github.com/estebangarcia21/subprocess"
+	// "github.com/shurcooL/githubv4"
 	// "github.com/shurcooL/githubv4"
 	"golang.org/x/oauth2"
 )
@@ -55,24 +57,26 @@ type Repo struct {
 
 // this is a function to utilize createing a new repo and initializing each metric within
 func NewRepo(url string) *Repo {
+	gitUrl := getGithubUrl(url)
 	InfoLogger.Println("Getting metrics for new repo ", url)
-	CloneRepo(url)
+	CloneRepo(gitUrl)
+	apiUrl := getEndpoint(gitUrl)
+	jsonRes := getResp(apiUrl)
 	r := Repo{URL: url}
-	r.BusFactor = GetBusFactor(r.URL)
-	r.Correctness = GetCorrectness(r.URL)
-	r.LicenseCompatibility = GetLicenseCompatibility(r.URL)
-	r.RampUpTime = GetRampUpTime(r.URL)
-	r.Responsiveness = GetResponsiveness(r.URL)
-	apiUrl := getEndpoint(url)
+	r.LocPRCR = getLoc(apiUrl)
+	r.BusFactor = GetBusFactor(jsonRes)
+	r.Correctness = GetCorrectness(gitUrl)
+	r.LicenseCompatibility = GetLicenseCompatibility(gitUrl)
+	r.RampUpTime = GetRampUpTime(gitUrl)
+	r.Responsiveness = GetResponsiveness(jsonRes)
 	// npmRes := getResp(apiUrl)
 	r.Dependency = getDependency(apiUrl)
-	r.LocPRCR = getLoc(apiUrl)
 	// fmt.Printf("LOC metric: ")
 	// fmt.Println(r.LocPRCR)
 	if (r.BusFactor == -1) || (r.Correctness == -1) || (r.Responsiveness == -1) || (r.RampUpTime == -1) || (r.LicenseCompatibility == -1) {
 		r.NetScore = -1
 	} else {
-		r.NetScore = ((75 * r.LicenseCompatibility) + (15 * r.BusFactor) + (20 * r.Responsiveness) + (20 * r.RampUpTime) + (20 * r.Correctness) + (15 * r.Dependency) + (20 * r.LocPRCR)) / 185
+		r.NetScore = ((25 * r.LicenseCompatibility) + (35 * r.BusFactor) + (30 * r.Responsiveness) + (30 * r.RampUpTime) + (40 * r.Correctness) + (15 * r.Dependency) + (10 * r.LocPRCR)) / 185
 	}
 	ClearRepoFolder()
 	InfoLogger.Println("Done getting metrics for ", url)
@@ -310,45 +314,114 @@ func getLastLineWithSeek(filepath string) string {
 // * END OF LOC * \\
 
 // Function to get Responsiveness metric score
-func GetResponsiveness(url string) float64 {
-	InfoLogger.Println("Getting Responsiveness for ", url)
-	// Variable declarations
-	var command string
+func GetResponsiveness(jsonRes map[string]interface{}) float64 {
+	var private float32
 
-	// command to run API.py with a URL passed in, output is stored in score.txt
-	command = "python3 src/python/API.py \"" + url + "\" >> src/metric_scores/Responsiveness/score.txt"
-
-	// creates process for command on shell
-	s := subprocess.New(command, subprocess.Shell)
-
-	// executes command
-	s.Exec()
-
-	// opens score.txt
-	file, _ := os.Open("src/metric_scores/Responsiveness/score.txt")
-
-	// create scanner to scan file
-	scanner := bufio.NewScanner(file)
-
-	for scanner.Scan() {
-		// reads string in score txt, converts to float64
-		s := scanner.Text()
-		score, err := strconv.ParseFloat(s, 64)
-		// if error return 0 as score and remove file, otherwise return score
-		if err != nil {
-			RemoveScores()
-			DebugLogger.Println("Error pasing score : ", err)
-			return 0
-		} else {
-			RemoveScores()
-			InfoLogger.Printf("Got Responsiveness score: %f for %s\n", score, url)
-			return score
-		}
+	// Getting information for last update
+	updatedAt := jsonRes["updated_at"].(string)
+	if jsonRes["private"].(bool) {
+		private = .1
+	} else {
+		private = .05
 	}
-	// in case of error, removeScores, return 0
-	RemoveScores()
-	DebugLogger.Println("Error getting Responsiveness")
-	return 0
+
+	// Parsing the update data
+	updateDateList := strings.Split(updatedAt, "-")
+	yearStr := updateDateList[0]
+	monthStr := updateDateList[1]
+
+	year, err := strconv.Atoi(yearStr)
+	if err != nil {
+		panic(err)
+	}
+
+	month, err := strconv.Atoi(monthStr)
+	if err != nil {
+		panic(err)
+	}
+	monthObj := time.Month(month)
+
+	// Arbitrarily taken from the 15 of the month
+	t1 := time.Date(year, monthObj, 15, 0, 0, 0, 0, time.UTC)
+	t2 := time.Now()
+	diff := t2.Sub(t1)
+
+	var updatedLast float32
+
+	// Scoring the update data based on time ranges
+	if 0 < diff.Seconds() && diff.Seconds() <= 604800 { // 7 days timeline
+		updatedLast = .25
+	} else if diff.Seconds() <= 15720000 { // 1/2 a year timeline
+		updatedLast = 0.12
+	} else if diff.Seconds() <= 15720000*2 { // 1 year timeline
+		updatedLast = 0.06
+	} else if diff.Seconds() <= 15720000*2*2 { //2 years timeline
+		updatedLast = 0.03
+	} else {
+		updatedLast = 0
+	}
+
+	// Acquring additional data from GITHUB API
+	hasIssues := jsonRes["has_issues"].(bool)
+
+	openIssues := jsonRes["open_issues"].(float64)
+
+	issuesScore := 0.0
+
+	if hasIssues {
+		issuesScore = 0.35 * math.Min(1, openIssues/350)
+	}
+
+	archivedStatus := jsonRes["archived"].(bool)
+	archivedScore := 0.0
+
+	if !archivedStatus {
+		archivedScore = 0.2
+	}
+
+	// Returning weighted sum of aspects
+	totalValue := float64(private + updatedLast + float32(issuesScore) + float32(archivedScore))
+	return totalValue
+	// Old code \\
+	// InfoLogger.Println("Getting Responsiveness for ", url)
+	// // Variable declarations
+	// var command string
+
+	// // command to run API.py with a URL passed in, output is stored in score.txt
+	// command = "python3 src/python/API.py \"" + url + "\" >> src/metric_scores/Responsiveness/score.txt"
+
+	// // creates process for command on shell
+	// s := subprocess.New(command, subprocess.Shell)
+
+	// // executes command
+	// s.Exec()
+
+	// // opens score.txt
+	// file, _ := os.Open("src/metric_scores/Responsiveness/score.txt")
+
+	// // create scanner to scan file
+	// scanner := bufio.NewScanner(file)
+
+	// for scanner.Scan() {
+	// 	// reads string in score txt, converts to float64
+	// 	s := scanner.Text()
+	// 	score, err := strconv.ParseFloat(s, 64)
+	// 	// if error return 0 as score and remove file, otherwise return score
+	// 	if err != nil {
+	// 		RemoveScores()
+	// 		DebugLogger.Println("Error pasing score : ", err)
+	// 		return 0
+	// 	} else {
+	// 		RemoveScores()
+	// 		InfoLogger.Printf("Got Responsiveness score: %f for %s\n", score, url)
+	// 		return score
+	// 	}
+	// }
+	// // in case of error, removeScores, return 0
+	// RemoveScores()
+	// DebugLogger.Println("Error getting Responsiveness")
+	// return 0
+	// End old code \\
 }
 
 // This function removes the Responsiveness score text file
@@ -375,6 +448,7 @@ func RemoveScores() {
 
 // Function to get ramp-up time metric score, calls RampUpTime.py, reads result from RU_Result.txt, returns that result as float
 func GetRampUpTime(url string) float64 {
+
 	InfoLogger.Println("Getting ramp up time for ", url)
 	var command string
 	command = "python3 src/python/rampUpTime.py"
@@ -401,56 +475,85 @@ func GetRampUpTime(url string) float64 {
 // * START OF BUS FACTOR * \\
 
 // Function to get bus factor metric score
-func GetBusFactor(url string) float64 {
-	InfoLogger.Println("Getting bus factor for ", url)
-
-	make_shortlog_file()
-	regex, _ := regexp.Compile("[0-9]+") //Regex for parsing count into only integer
-
-	short_log_raw_data, err1 := os.ReadFile("src/metric_scores/BusFactor/shortlog.txt")
-	if err1 != nil {
-		DebugLogger.Println("Did not find shortlog file")
-		log.Fatal(err1)
-	}
-
-	arr := strings.Split(string(short_log_raw_data), "\n") // parsing shortlog file by lines
-
-	len_log := len(arr) - 1
-
-	if len_log < 1 {
-		DebugLogger.Println("No committers for repo")
-		delete_shortlog_file()
-		return 0
-	}
-
-	var num_bus_committers int
-	if len_log < 100 {
-		num_bus_committers = 1
+func GetBusFactor(jsonRes map[string]interface{}) float64 {
+	var disabled float32
+	var forking float32
+	var visibility float32
+	
+	// Collected data from the "web_commit_signoff_required" aspect
+	if jsonRes["web_commit_signoff_required"].(bool) {
+		disabled = .0
 	} else {
-		num_bus_committers = len_log / 100
+		disabled = 0.2
+	}
+	
+	// Collected data from the "allow_forking" aspect
+	if jsonRes["allow_forking"].(bool) {
+		forking = 0.2
+	} else {
+		forking = 0.4
+	}
+	
+	// Collected data from the "visibility" aspect
+	if jsonRes["visibility"].(string) == "public" {
+		visibility = .4
+	} else {
+		visibility = .2
 	}
 
-	total := 0
-	total_bus_guys := 0
-	var num string
+	// Returning weighted sum
+	return float64(disabled + forking + visibility)
+	// Start Old Code \\
+	// InfoLogger.Println("Getting bus factor for ", url)
 
-	for i := 0; i < len_log; i++ {
-		num = regex.FindString(arr[i])
-		num_int, err2 := strconv.Atoi(num)
-		if err2 != nil {
-			DebugLogger.Println("Conversion from string to int didn't work (bus factor calc)")
-			log.Fatal(err2)
-		}
-		total += num_int
-		if i < num_bus_committers {
-			total_bus_guys += num_int
-		}
-	}
-	delete_shortlog_file()
-	metric := (float64(total) - float64(total_bus_guys)) / float64(total)
+	// make_shortlog_file()
+	// regex, _ := regexp.Compile("[0-9]+") //Regex for parsing count into only integer
 
-	InfoLogger.Printf("Got bus factor score: %f for %s\n", metric, url)
-	return metric
+	// short_log_raw_data, err1 := os.ReadFile("src/metric_scores/BusFactor/shortlog.txt")
+	// if err1 != nil {
+	// 	DebugLogger.Println("Did not find shortlog file")
+	// 	log.Fatal(err1)
+	// }
+
+	// arr := strings.Split(string(short_log_raw_data), "\n") // parsing shortlog file by lines
+
+	// len_log := len(arr) - 1
+
+	// if len_log < 1 {
+	// 	DebugLogger.Println("No committers for repo")
+	// 	delete_shortlog_file()
+	// 	return 0
+	// }
+
+	// var num_bus_committers int
+	// if len_log < 100 {
+	// 	num_bus_committers = 1
+	// } else {
+	// 	num_bus_committers = len_log / 100
+	// }
+
+	// total := 0
+	// total_bus_guys := 0
+	// var num string
+
+	// for i := 0; i < len_log; i++ {
+	// 	num = regex.FindString(arr[i])
+	// 	num_int, err2 := strconv.Atoi(num)
+	// 	if err2 != nil {
+	// 		DebugLogger.Println("Conversion from string to int didn't work (bus factor calc)")
+	// 		log.Fatal(err2)
+	// 	}
+	// 	total += num_int
+	// 	if i < num_bus_committers {
+	// 		total_bus_guys += num_int
+	// 	}
+	// }
+	// delete_shortlog_file()
+	// metric := (float64(total) - float64(total_bus_guys)) / float64(total)
+
+	// InfoLogger.Printf("Got bus factor score: %f for %s\n", metric, url)
+	// return metric
+	// End Old Code \\
 }
 
 func make_shortlog_file() {
@@ -766,7 +869,7 @@ func PrintRepo(next *Repo) {
 func RepoOUT(r *Repo) {
 	InfoLogger.Println("Final repo result:")
 	InfoLogger.Printf("{\"URL\":\"%s\", \"NET_SCORE\":%.2f, \"RAMP_UP_SCORE\":%.2f, \"Correctness_SCORE\":%.2f, \"BUS_FACTOR_SCORE\":%.2f, \"RESPONSIVE_MAINTAINER_SCORE\":%.2f, \"LICENSE_SCORE\":%.2f} \n", r.URL, r.NetScore, r.RampUpTime, r.Correctness, r.BusFactor, r.Responsiveness, r.LicenseCompatibility)
-	fmt.Printf("{\"URL\":\"%s\", \"NET_SCORE\":%.2f, \"RAMP_UP_SCORE\":%.2f, \"Correctness_SCORE\":%.2f, \"BUS_FACTOR_SCORE\":%.2f, \"RESPONSIVE_MAINTAINER_SCORE\":%.2f, \"LICENSE_SCORE\":%.2f} \n", r.URL, r.NetScore, r.RampUpTime, r.Correctness, r.BusFactor, r.Responsiveness, r.LicenseCompatibility)
+	fmt.Printf("{\"URL\":\"%s\", \"NET_SCORE\":%.2f, \"RAMP_UP_SCORE\":%.2f, \"CORRECTNESS_SCORE\":%.2f, \"BUS_FACTOR_SCORE\":%.2f, \"RESPONSIVE_MAINTAINER_SCORE\":%.2f, \"LICENSE_SCORE\":%.2f, \"LOC\":%.2f, \"DEPENDENCY\":%.2f} \n", r.URL, r.NetScore, r.RampUpTime, r.Correctness, r.BusFactor, r.Responsiveness, r.LicenseCompatibility, r.LocPRCR, r.Dependency)
 }
 
 // * END OF STDOUT * \\
@@ -792,3 +895,45 @@ func AddRepo(head *Repo, curr *Repo, temp *Repo) *Repo {
 }
 
 // * END OF SORTING * \\
+
+// * GETTING GITHUB URL * \\
+// Function to get the GitHub URL from the npmurl input
+func getGithubUrl(url string) string {
+	before, after, found := strings.Cut(url, "www")
+	//Finding endpoints and checking for their existence
+	if found {
+		npmEndpoint := before + "registry" + after
+		npmEndpoint = strings.Replace(npmEndpoint, "com", "org", 1)
+		npmEndpoint = strings.Replace(npmEndpoint, "package/", "", 1)
+
+		resp, err := http.Get(npmEndpoint)
+
+		if err != nil {
+			return ""
+		}
+
+		if resp.StatusCode == http.StatusOK {
+			bodyBytes, err := io.ReadAll(resp.Body)
+
+			if err != nil {
+				return ""
+			}
+
+			bodyString := string(bodyBytes)
+			resBytes := []byte(bodyString)
+			var npmRes map[string]interface{}
+			_ = json.Unmarshal(resBytes, &npmRes)
+
+			bugs := npmRes["bugs"].(map[string]interface{})
+			npmEndpoint = bugs["url"].(string)
+
+			if npmEndpoint == "" {
+				return ""
+			}
+
+			url = strings.Replace(npmEndpoint, "/issues", "", 1)
+		}
+	}
+	return url
+}
+// * END GITHUB URL * \\

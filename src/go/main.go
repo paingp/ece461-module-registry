@@ -4,7 +4,7 @@ import (
 	"bufio"
 	"encoding/json"
 	"fmt"
-	"io"
+	// "io"
 	"io/ioutil"
 	"os/exec"
 
@@ -18,8 +18,8 @@ import (
 
 	// "math"
 
-	"net/http"
-	"strings"
+	// "net/http"
+	// "strings"
 
 	// "utils"
 
@@ -84,6 +84,7 @@ func main() {
 		for scanner.Scan() {
 			//Create new repositories with current URL scanned
 			hold = ratom.NewRepo(scanner.Text())
+			ratom.PrintRepo(hold)
 			ratom.InfoLogger.Println("New repo created successfully")
 			// Adds repository to Linked List in sorted order by net score
 			head = ratom.AddRepo(head, head.Next, hold)
@@ -206,43 +207,3 @@ func VisitFile(path string, info os.FileInfo, err error) error {
 
 // 	return head
 // }
-
-// Function to get the GitHub URL from the npmurl input
-func getGithubUrl(url string) string {
-	before, after, found := strings.Cut(url, "www")
-	//Finding endpoints and checking for their existence
-	if found {
-		npmEndpoint := before + "registry" + after
-		npmEndpoint = strings.Replace(npmEndpoint, "com", "org", 1)
-		npmEndpoint = strings.Replace(npmEndpoint, "package/", "", 1)
-
-		resp, err := http.Get(npmEndpoint)
-
-		if err != nil {
-			return ""
-		}
-
-		if resp.StatusCode == http.StatusOK {
-			bodyBytes, err := io.ReadAll(resp.Body)
-
-			if err != nil {
-				return ""
-			}
-
-			bodyString := string(bodyBytes)
-			resBytes := []byte(bodyString)
-			var npmRes map[string]interface{}
-			_ = json.Unmarshal(resBytes, &npmRes)
-
-			bugs := npmRes["bugs"].(map[string]interface{})
-			npmEndpoint = bugs["url"].(string)
-
-			if npmEndpoint == "" {
-				return ""
-			}
-
-			url = strings.Replace(npmEndpoint, "/issues", "", 1)
-		}
-	}
-	return url
-}
