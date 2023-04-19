@@ -61,7 +61,7 @@ func NewRepo(url string) *Repo {
 	InfoLogger.Println("Getting metrics for new repo ", url)
 	CloneRepo(gitUrl)
 	apiUrl := getEndpoint(gitUrl)
-	jsonRes := getResp(apiUrl)
+	jsonRes := GetResp(apiUrl)
 	r := Repo{URL: url}
 	r.LocPRCR = getLoc(apiUrl)
 	r.BusFactor = GetBusFactor(jsonRes)
@@ -93,7 +93,7 @@ func getEndpoint(url string) string {
 	return url
 }
 
-func getResp(url string) map[string]interface{} {
+func GetResp(url string) map[string]interface{} {
 	src := oauth2.StaticTokenSource(
 		&oauth2.Token{AccessToken: os.Getenv("GITHUB_TOKEN")},
 	)
@@ -162,7 +162,7 @@ func getDependency(url string) float64 {
 
 	// Getting response from dependency sbom url
 	depUrl = url + "/dependency-graph/sbom"
-	resp = getResp(depUrl)
+	resp = GetResp(depUrl)
 
 	// Getting list of packages
 	packages := resp["sbom"].(map[string]interface{})["packages"].([]interface{})
@@ -215,13 +215,13 @@ func getLoc(url string) float64 {
 	sum = 0
 	for i = 0; i < len(resp); i++ {
 		link = resp[i]["_links"].(map[string]interface{})["self"].(map[string]interface{})["href"].(string)
-		resp2 = getResp(string(link))
+		resp2 = GetResp(string(link))
 		sum = sum + resp2["additions"].(float64)
 		sum = sum - resp2["deletions"].(float64)
 	}
 
 	// Getting the total lines of code from original link
-	resp2 = getResp(url)
+	resp2 = GetResp(url)
 
 	total = getTotalLines()
 
