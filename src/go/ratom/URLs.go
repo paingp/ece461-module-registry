@@ -466,6 +466,13 @@ func GetRampUpTime(url string) float64 {
 		DebugLogger.Println("Conversion of string to float didn't work.")
 	}
 	InfoLogger.Printf("Got ramp up time score: %f for %s\n", f1, url)
+
+	if(f1 * 1.4 > 1) {
+		f1 = 1
+	} else {
+		f1 = f1 * 1.4
+	}
+
 	return f1
 
 }

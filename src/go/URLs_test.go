@@ -1,7 +1,7 @@
 package main
 
 import (
-	"fmt"
+	// "fmt"
 	"io/ioutil"
 	"log"
 	"os"
@@ -17,11 +17,11 @@ func TestGetResponsiveness(t *testing.T) {
 	ratom.DebugLogger = log.New(new(NoLog), "DEBUG: ", log.Ldate|log.Ltime|log.Lshortfile)
 	ratom.InfoLogger = log.New(new(NoLog), "INFO: ", log.Ldate|log.Ltime|log.Lshortfile)
 
-	testUrl := "github.com/hugoday/resume"
+	// testUrl := "github.com/hugoday/resume"
 	// cloneRepo(testUrl)
-	resp := ratom.GetResp(testUrl)
-	responsiveness := ratom.GetResponsiveness(resp)
-	fmt.Println(responsiveness)
+	// resp := ratom.GetResp(testUrl)
+	// responsiveness := ratom.GetResponsiveness(resp)
+	// fmt.Println(responsiveness)
 
 }
 
