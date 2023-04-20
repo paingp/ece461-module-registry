@@ -7,7 +7,7 @@
  * body AuthenticationRequest 
  * returns AuthenticationToken
  **/
-exports.createAuthToken = function(body) {
+exports.CreateAuthToken = function(body) {
   return new Promise(function(resolve, reject) {
     var examples = {};
     examples['application/json'] = "";
@@ -27,7 +27,7 @@ exports.createAuthToken = function(body) {
  * name PackageName 
  * no response value expected for this operation
  **/
-exports.packageByNameDelete = function(xAuthorization,name) {
+exports.PackageByNameDelete = function(xAuthorization,name) {
   return new Promise(function(resolve, reject) {
     resolve();
   });
@@ -41,7 +41,7 @@ exports.packageByNameDelete = function(xAuthorization,name) {
  * xAuthorization AuthenticationToken 
  * returns List
  **/
-exports.packageByNameGet = function(name,xAuthorization) {
+exports.PackageByNameGet = function(name,xAuthorization) {
   return new Promise(function(resolve, reject) {
     var examples = {};
     examples['application/json'] = [ {
@@ -86,7 +86,7 @@ exports.packageByNameGet = function(name,xAuthorization) {
  * xAuthorization AuthenticationToken 
  * returns List
  **/
-exports.packageByRegExGet = function(body,xAuthorization) {
+exports.PackageByRegExGet = function(body,xAuthorization) {
   return new Promise(function(resolve, reject) {
     var examples = {};
     examples['application/json'] = [ {
@@ -113,7 +113,7 @@ exports.packageByRegExGet = function(body,xAuthorization) {
  * xAuthorization AuthenticationToken 
  * returns Package
  **/
-exports.packageCreate = function(body,xAuthorization) {
+exports.PackageCreate = function(body,xAuthorization) {
   return new Promise(function(resolve, reject) {
     var examples = {};
     examples['application/json'] = {
@@ -144,7 +144,7 @@ exports.packageCreate = function(body,xAuthorization) {
  * id PackageID Package ID
  * no response value expected for this operation
  **/
-exports.packageDelete = function(xAuthorization,id) {
+exports.PackageDelete = function(xAuthorization,id) {
   return new Promise(function(resolve, reject) {
     resolve();
   });
@@ -157,7 +157,7 @@ exports.packageDelete = function(xAuthorization,id) {
  * xAuthorization AuthenticationToken 
  * returns PackageRating
  **/
-exports.packageRate = function(id,xAuthorization) {
+exports.PackageRate = function(id,xAuthorization) {
   return new Promise(function(resolve, reject) {
     var examples = {};
     examples['application/json'] = {
@@ -187,7 +187,7 @@ exports.packageRate = function(id,xAuthorization) {
  * id PackageID ID of package to fetch
  * returns Package
  **/
-exports.packageRetrieve = function(xAuthorization,id) {
+exports.PackageRetrieve = function(xAuthorization,id) {
   return new Promise(function(resolve, reject) {
     var examples = {};
     examples['application/json'] = {
@@ -220,7 +220,7 @@ exports.packageRetrieve = function(xAuthorization,id) {
  * xAuthorization AuthenticationToken 
  * no response value expected for this operation
  **/
-exports.packageUpdate = function(body,id,xAuthorization) {
+exports.PackageUpdate = function(body,id,xAuthorization) {
   return new Promise(function(resolve, reject) {
     resolve();
   });
@@ -236,7 +236,7 @@ exports.packageUpdate = function(body,id,xAuthorization) {
  * xAuthorization AuthenticationToken 
  * returns List
  **/
-exports.packagesList = function(body,offset,xAuthorization) {
+exports.PackagesList = function(body,offset,xAuthorization) {
   return new Promise(function(resolve, reject) {
     var examples = {};
     examples['application/json'] = [ {
@@ -264,7 +264,7 @@ exports.packagesList = function(body,offset,xAuthorization) {
  * xAuthorization AuthenticationToken 
  * no response value expected for this operation
  **/
-exports.registryReset = function(xAuthorization) {
+exports.RegistryReset = function(xAuthorization) {
   return new Promise(function(resolve, reject) {
     resolve();
   });
