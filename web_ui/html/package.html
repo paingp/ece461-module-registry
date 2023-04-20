@@ -13,11 +13,13 @@
         
         <p></p>
 
-        <form>
-            X-Authorization:<br> <input type="text" name="X-Authorization_packages">
-            <br>
-            Offset:<br> <input type="text" name="offset_packages">
-         </form>
+        <form action="http://localhost:8080/docs/">
+            <label for="X-Authorization">X-Authorization:</label>
+            <input type="text" id="X-Authorization_packages" name="X-Authorization_packages"><br><br>
+            <label for="Offset">Offset:</label>
+            <input type="text" id="offset_packages" name="offset_packages"><br><br>
+            <input type="submit" value="Submit">
+        </form>
     </body>
     
     </html>
