@@ -7,8 +7,14 @@ import (
 	"os"
 	"testing"
 
-	"github.com/hugoday/ECE461ProjectCLI/src/go/ratom"
+	"tomr/src/go/ratom"
 )
+
+type NoLog int
+
+func (NoLog) Write([]byte) (int, error) {
+	return 0, nil
+}
 
 // * START OF RESPONSIVENESS * \\
 

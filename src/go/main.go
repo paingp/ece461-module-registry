@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"encoding/json"
 	"fmt"
+
 	// "io"
 	"io/ioutil"
 	"os/exec"
@@ -31,7 +32,6 @@ type NoLog int
 func (NoLog) Write([]byte) (int, error) {
 	return 0, nil
 }
-
 
 var files []string
 

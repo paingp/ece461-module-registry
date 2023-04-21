@@ -9,7 +9,6 @@ import (
 	"fmt"
 	"io"
 	"log"
-	"time"
 	"math"
 	"net/http"
 	"os"
@@ -18,12 +17,12 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
+	"time"
 
 	// "log"
 	// "reflect"
 
 	"github.com/estebangarcia21/subprocess"
-	// "github.com/shurcooL/githubv4"
 	// "github.com/shurcooL/githubv4"
 	"golang.org/x/oauth2"
 )
@@ -39,7 +38,6 @@ var (
 // Includes each metric, and the total score at the end
 // this repo struct will be the input to the linked lists,
 // where we will pass urls by accessing the repo's url
-
 
 // * END OF REPO STRUCTS * \\
 type Repo struct {
@@ -108,8 +106,6 @@ func GetResp(url string) map[string]interface{} {
 
 	bodyBytes, err := io.ReadAll(resp.Body)
 
-	
-
 	if err != nil {
 		return nil
 	}
@@ -137,8 +133,6 @@ func getPRResp(url string) []map[string]interface{} {
 
 	bodyBytes, err := io.ReadAll(resp.Body)
 
-	
-
 	if err != nil {
 		return nil
 	}
@@ -159,7 +153,6 @@ func getDependency(url string) float64 {
 	var resp map[string]interface{}
 	var pinned float64
 
-
 	// Getting response from dependency sbom url
 	depUrl = url + "/dependency-graph/sbom"
 	resp = GetResp(depUrl)
@@ -167,26 +160,25 @@ func getDependency(url string) float64 {
 	// Getting list of packages
 	packages := resp["sbom"].(map[string]interface{})["packages"].([]interface{})
 
-	// Iterating through and counting major + minor pinned packages 
+	// Iterating through and counting major + minor pinned packages
 	pinned = 0
 	for i := 0; i < len(packages); i++ {
 		// fmt.Println(packages[i].(map[string]interface{})["versionInfo"].(string))
 		version := packages[i].(map[string]interface{})["versionInfo"].(string)
 
-		if((!strings.Contains(version, "^")) && (strings.Count(version, ".") >= 2) || strings.Contains(version, "~")) {
+		if (!strings.Contains(version, "^")) && (strings.Count(version, ".") >= 2) || strings.Contains(version, "~") {
 			pinned = pinned + 1
 		}
 	}
 
 	pinned = pinned / float64(len(packages))
 
-	if(pinned > 1.0) {
+	if pinned > 1.0 {
 		pinned = 1.0
 	}
-	if(pinned < 0.0 || math.IsNaN(pinned)) {
+	if pinned < 0.0 || math.IsNaN(pinned) {
 		pinned = 0.0
 	}
-	
 
 	return pinned
 }
@@ -223,14 +215,14 @@ func getLoc(url string) float64 {
 	// Getting the total lines of code from original link
 	resp2 = GetResp(url)
 
-	total = getTotalLines()
+	total = 100 //getTotalLines()
 
 	sum = sum / total
 
-	if(sum > 1.0) {
+	if sum > 1.0 {
 		sum = 1
 	}
-	if(sum < 0.0) {
+	if sum < 0.0 {
 		sum = 0.0
 	}
 
@@ -259,7 +251,7 @@ func getTotalLines() float64 {
 
 	for scanner.Scan() {
 		str := r.FindString(scanner.Text())
-		if(str != "") {
+		if str != "" {
 			temp := strings.Split(str, ",")
 
 			comments, _ := strconv.ParseFloat(temp[1], 64)
@@ -278,36 +270,36 @@ func getTotalLines() float64 {
 func getLastLineWithSeek(filepath string) string {
 	var line string
 	var cursor int64
-    fileHandle, err := os.Open(filepath)
+	fileHandle, err := os.Open(filepath)
 
-    if err != nil {
-        return "0"
-    }
-    defer fileHandle.Close()
+	if err != nil {
+		return "0"
+	}
+	defer fileHandle.Close()
 
-    line = ""
-    cursor = 0
-    stat, _ := fileHandle.Stat()
-    filesize := stat.Size()
-    for { 
-        cursor -= 1
-        fileHandle.Seek(cursor, io.SeekEnd)
+	line = ""
+	cursor = 0
+	stat, _ := fileHandle.Stat()
+	filesize := stat.Size()
+	for {
+		cursor -= 1
+		fileHandle.Seek(cursor, io.SeekEnd)
 
-        char := make([]byte, 1)
-        fileHandle.Read(char)
+		char := make([]byte, 1)
+		fileHandle.Read(char)
 
-        if cursor != -1 && (char[0] == 10 || char[0] == 13) { // stop if we find a line
-            break
-        }
+		if cursor != -1 && (char[0] == 10 || char[0] == 13) { // stop if we find a line
+			break
+		}
 
-        line = fmt.Sprintf("%s%s", string(char), line) // there is more efficient way
+		line = fmt.Sprintf("%s%s", string(char), line) // there is more efficient way
 
-        if cursor == -filesize { // stop if we are at the begining
-            break
-        }
-    }
+		if cursor == -filesize { // stop if we are at the begining
+			break
+		}
+	}
 
-    return line
+	return line
 }
 
 // api.github.com/repos/lodash/lodash/pulls?state=closed + go to each link
@@ -467,7 +459,7 @@ func GetRampUpTime(url string) float64 {
 	}
 	InfoLogger.Printf("Got ramp up time score: %f for %s\n", f1, url)
 
-	if(f1 * 1.4 > 1) {
+	if f1*1.4 > 1 {
 		f1 = 1
 	} else {
 		f1 = f1 * 1.4
@@ -486,21 +478,21 @@ func GetBusFactor(jsonRes map[string]interface{}) float64 {
 	var disabled float32
 	var forking float32
 	var visibility float32
-	
+
 	// Collected data from the "web_commit_signoff_required" aspect
 	if jsonRes["web_commit_signoff_required"].(bool) {
 		disabled = .0
 	} else {
 		disabled = 0.2
 	}
-	
+
 	// Collected data from the "allow_forking" aspect
 	if jsonRes["allow_forking"].(bool) {
 		forking = 0.2
 	} else {
 		forking = 0.4
 	}
-	
+
 	// Collected data from the "visibility" aspect
 	if jsonRes["visibility"].(string) == "public" {
 		visibility = .4
@@ -943,4 +935,5 @@ func getGithubUrl(url string) string {
 	}
 	return url
 }
+
 // * END GITHUB URL * \\
