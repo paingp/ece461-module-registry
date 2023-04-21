@@ -3,7 +3,7 @@ import re
 from google.cloud import storage
 
 os.environ["GCLOUD_PROJECT"] = "ece461-module-registry"
-bucket_name = "tmr-bucket"
+bucket_name = "tomr-bucket"
 
 def find_regex_matches(regex_string):
 
@@ -21,6 +21,8 @@ def find_regex_matches(regex_string):
 
         blobWritten = 0
         result_append = []
+
+        print(blob)
         
         if regex_pattern.match(blob.name) != None:
             moduleName = blob.name[:-4]

@@ -8,7 +8,10 @@ require (
 	golang.org/x/oauth2 v0.0.0-20221014153046-6fdb5e3db783
 )
 
-require github.com/go-git/go-git/v5 v5.6.1
+require (
+	github.com/go-git/go-git/v5 v5.6.1
+	github.com/go-sql-driver/mysql v1.7.0
+)
 
 require (
 	cloud.google.com/go v0.107.0 // indirect
@@ -22,6 +25,7 @@ require (
 	github.com/emirpasic/gods v1.18.1 // indirect
 	github.com/go-git/gcfg v1.5.0 // indirect
 	github.com/go-git/go-billy/v5 v5.4.1 // indirect
+	github.com/golang-jwt/jwt/v4 v4.5.0 // indirect
 	github.com/golang/groupcache v0.0.0-20200121045136-8c9f03a8e57e // indirect
 	github.com/golang/protobuf v1.5.2 // indirect
 	github.com/google/go-cmp v0.5.9 // indirect

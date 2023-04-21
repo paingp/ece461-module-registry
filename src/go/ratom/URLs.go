@@ -510,57 +510,6 @@ func GetBusFactor(jsonRes map[string]interface{}) float64 {
 
 	// Returning weighted sum
 	return float64(disabled + forking + visibility)
-	// Start Old Code \\
-	// InfoLogger.Println("Getting bus factor for ", url)
-
-	// make_shortlog_file()
-	// regex, _ := regexp.Compile("[0-9]+") //Regex for parsing count into only integer
-
-	// short_log_raw_data, err1 := os.ReadFile("src/metric_scores/BusFactor/shortlog.txt")
-	// if err1 != nil {
-	// 	DebugLogger.Println("Did not find shortlog file")
-	// 	log.Fatal(err1)
-	// }
-
-	// arr := strings.Split(string(short_log_raw_data), "\n") // parsing shortlog file by lines
-
-	// len_log := len(arr) - 1
-
-	// if len_log < 1 {
-	// 	DebugLogger.Println("No committers for repo")
-	// 	delete_shortlog_file()
-	// 	return 0
-	// }
-
-	// var num_bus_committers int
-	// if len_log < 100 {
-	// 	num_bus_committers = 1
-	// } else {
-	// 	num_bus_committers = len_log / 100
-	// }
-
-	// total := 0
-	// total_bus_guys := 0
-	// var num string
-
-	// for i := 0; i < len_log; i++ {
-	// 	num = regex.FindString(arr[i])
-	// 	num_int, err2 := strconv.Atoi(num)
-	// 	if err2 != nil {
-	// 		DebugLogger.Println("Conversion from string to int didn't work (bus factor calc)")
-	// 		log.Fatal(err2)
-	// 	}
-	// 	total += num_int
-	// 	if i < num_bus_committers {
-	// 		total_bus_guys += num_int
-	// 	}
-	// }
-	// delete_shortlog_file()
-	// metric := (float64(total) - float64(total_bus_guys)) / float64(total)
-
-	// InfoLogger.Printf("Got bus factor score: %f for %s\n", metric, url)
-	// return metric
-	// End Old Code \\
 }
 
 func make_shortlog_file() {
