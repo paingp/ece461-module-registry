@@ -70,6 +70,6 @@ func Regex(regex_str string) []string {
 
 }
 
-func main() {
-	fmt.Println(Regex("(Cloudinary|lodash)"))
-}
+// func main() {
+// 	fmt.Println(Regex("(Cloudinary|lodash)"))
+// }

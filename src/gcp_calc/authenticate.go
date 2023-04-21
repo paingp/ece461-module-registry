@@ -13,8 +13,8 @@ func Authenticate(username string, password string) string {
     return "401"
 }
 
-// example usage
-func main() {
-    token := Authenticate("ece30861defaultadminuser" ,"correcthorsebatterystaple123(!__+@**(A\u2019\u201D`;DROP TABLE packages;")
-    fmt.Println(token)
-}
+// // example usage
+// func main() {
+//     token := Authenticate("ece30861defaultadminuser" ,"correcthorsebatterystaple123(!__+@**(A\u2019\u201D`;DROP TABLE packages;")
+//     fmt.Println(token)
+// }

@@ -70,6 +70,6 @@ func addMetadata(meta Metadata) (int64, error) {
     return id, nil
 }
 
-func main() {
-	AddFileMetadata("hello", "hello", "hello", "hello", "hello", "hello")
-}
+// func main() {
+// 	AddFileMetadata("hello", "hello", "hello", "hello", "hello", "hello")
+// }
