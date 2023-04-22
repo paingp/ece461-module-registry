@@ -62,9 +62,8 @@ func main() {
 
 		router.Delete("/reset", handlers.ResetRegistry)
 
-		err := http.ListenAndServe(":3000", router)
-		if err != nil {
-			log.Println(err)
-		}
-	*/
+    err := http.ListenAndServe(":3000", router)
+    if err != nil {
+        log.Println(err)
+    }
 }
