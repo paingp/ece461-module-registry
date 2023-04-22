@@ -1,25 +1,25 @@
 package main
 
 import (
-	// "fmt"
+    // "fmt"
 
-	"log"
-	"net/http"
+    "log"
+    "net/http"
 
-	"github.com/go-chi/chi/v5"
-	"tomr/src/handlers"
+    "github.com/go-chi/chi/v5"
+    "tomr/src/handlers"
 )
 func main() {
-	router := chi.NewRouter()
+    router := chi.NewRouter()
 
     router.Put("/authenticate", handlers.CreateAuthToken)
 
-	router.Get("/", func(writer http.ResponseWriter, request *http.Request) {
-		_, err := writer.Write([]byte("ece461g17-module-registry"))
-		if err != nil {
-			log.Println(err)
-		}
-	})
+    router.Get("/", func(writer http.ResponseWriter, request *http.Request) {
+        _, err := writer.Write([]byte("ece461g17-module-registry"))
+        if err != nil {
+            log.Println(err)
+        }
+    })
 
     router.Route("/package", func(r chi.Router) {
         // r.Post("/", handlers.CreatePackage)
@@ -38,10 +38,8 @@ func main() {
 
     router.Delete("/reset", handlers.ResetRegistry)
 
-	err := http.ListenAndServe(":3000", router)
-	if err != nil {
-		log.Println(err)
-	}
+    err := http.ListenAndServe(":3000", router)
+    if err != nil {
+        log.Println(err)
+    }
 }
-
-
