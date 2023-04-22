@@ -1,10 +1,20 @@
 package handlers
 
 import (
+	// "encoding/json"
+
+	"encoding/json"
 	"fmt"
+	"io/ioutil"
+
+	// "io/ioutil"
 	"log"
 	"net/http"
+	"os/exec"
+
+	// "os/exec"
 	"path"
+	"regexp"
 	"tomr/models"
 	"tomr/src/metrics"
 	"tomr/src/utils"
@@ -46,13 +56,67 @@ func GetPackageByRegEx(writer http.ResponseWriter, request *http.Request) {
 
 	request.ParseForm()
 
-	given_xAuth := request.Form["X-Authorization"][0]
-	regex_string := request.Form["Regex String"][0]
+	var given_xAuth string
+	var regex_string string
+
+	if request.Form["X-Authorization"] != nil {
+		given_xAuth = request.Form["X-Authorization"][0]
+		regex_string = request.Form["Regex String"][0]
+	} else {
+		given_xAuth = request.Header["X-Authorization"][0]
+
+		type regex_body struct {
+			Regex string `json:"Regex"`
+		}
+
+		body, _ := ioutil.ReadAll(request.Body)
+
+		var regex regex_body
+		json.Unmarshal(body, &regex)
+
+		regex_string = string(body)
+	}
 
 	if given_xAuth == auth_success && regex_string != "" {
 
+		// version := 2
+		return_string := utils.Regex(regex_string)
+
+		if len(return_string) == 0 {
+			writer.WriteHeader(404)
+			writer.Write([]byte("Status: 404 No package found under this regex."))
+			return
+		}
+
+		type Regex_output struct {
+			Version string
+			Name    string
+		}
+
+		regex_str := "(.*?)" + `\((.*?)\)`
+		pattern, _ := regexp.Compile(regex_str)
+
+		var regex_return []Regex_output
+
+		for _, i := range return_string {
+			rs := pattern.FindStringSubmatch(i)
+
+			regex_singleMatch := Regex_output{rs[2], rs[1]}
+			regex_return = append(regex_return, regex_singleMatch)
+		}
+
 		writer.WriteHeader(200)
-		writer.Write([]byte("Status: 200 Return a list of packages."))
+		writer.Write([]byte("["))
+
+		for i := 0; i < len(regex_return); i++ {
+			output_string := "\n  {\n    \"Version\": \"" + regex_return[i].Version + "\",\n    \"Name\": \"" + regex_return[i].Name + "\"\n  }"
+			writer.Write([]byte(output_string))
+
+			if i == len(regex_return)-1 {
+				writer.Write([]byte(","))
+			}
+		}
+		writer.Write([]byte("\n]"))
 
 	} else if regex_string == "" || given_xAuth == "" {
 		writer.WriteHeader(400)
@@ -63,24 +127,36 @@ func GetPackageByRegEx(writer http.ResponseWriter, request *http.Request) {
 func ResetRegistry(writer http.ResponseWriter, request *http.Request) {
 
 	request.ParseForm()
-	given_xAuth := request.Form["X-Authorization"][0]
 
-	fmt.Print((given_xAuth))
+	var given_xAuth string
+
+	if request.Form["X-Authorization"] != nil {
+		given_xAuth = request.Form["X-Authorization"][0]
+	} else {
+		given_xAuth = request.Header["X-Authorization"][0]
+	}
 
 	if given_xAuth == auth_success {
 
-		// Call Go Function here
-		fmt.Print("Aditya Srikanth")
+		// exec.Command("python3", "src/handlers/test.py").Run()
+		//../gcp_calc/delete_bucket.py tomr
+		//src/gcp_calc/delete_bucket.py tomr
+
+		cmd := exec.Command("python3", "src/gcp_calc/delete_bucket.py", "tomr")
+		_, err := cmd.Output()
+
+		if err != nil {
+			println(err.Error())
+			return
+		}
 
 		writer.WriteHeader(200)
 		writer.Write([]byte("Registry is reset."))
-	} else if given_xAuth == "" {
+	} else {
 		writer.WriteHeader(400)
 		writer.Write([]byte("There is missing field(s) in the AuthenticationToken or it is formed improperly, or the AuthenticationToken is invalid."))
-	} else {
-		writer.WriteHeader(401)
-		writer.Write([]byte("You do not have permission to reset the registry."))
 	}
+
 }
 
 func RetrievePackage(writer http.ResponseWriter, request *http.Request) {
