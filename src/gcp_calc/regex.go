@@ -12,7 +12,7 @@ import (
 
 func Regex(regex_str string) []string {
 	var matches []string
-	bucketName := "tomr-bucket"
+	bucketName := "tomr"
 
 	// Create regex for string
 	pattern, err := regexp.Compile(regex_str)
@@ -214,5 +214,5 @@ func History(name string, args ...string) [][]byte {
 }
 
 func main() {
-    fmt.Println(History("node-du"))
+    fmt.Println(Regex("node-du"))
 }
