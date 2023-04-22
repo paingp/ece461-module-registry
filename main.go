@@ -9,7 +9,6 @@ import (
 	"github.com/go-chi/chi/v5"
 	"tomr/src/handlers"
 )
-
 func main() {
 	router := chi.NewRouter()
 
