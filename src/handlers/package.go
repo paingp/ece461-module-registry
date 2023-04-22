@@ -79,7 +79,6 @@ func GetPackageByRegEx(writer http.ResponseWriter, request *http.Request) {
 
 	if given_xAuth == auth_success && regex_string != "" {
 
-		// version := 2
 		return_string := utils.Regex(regex_string)
 
 		if len(return_string) == 0 {
@@ -142,7 +141,7 @@ func ResetRegistry(writer http.ResponseWriter, request *http.Request) {
 		//../gcp_calc/delete_bucket.py tomr
 		//src/gcp_calc/delete_bucket.py tomr
 
-		cmd := exec.Command("python3", "src/gcp_calc/delete_bucket.py", "tomr")
+		cmd := exec.Command("python3", "src/gcp_calc/deleteBucket.py", "tomr")
 		_, err := cmd.Output()
 
 		if err != nil {

@@ -1,4 +1,4 @@
-package main
+package utils
 
 import (
 	"context"
@@ -12,7 +12,7 @@ import (
 
 func Regex(regex_str string) []string {
 	var matches []string
-	bucketName := "tomr-bucket"
+	bucketName := "tomr"
 
 	// Create regex for string
 	pattern, err := regexp.Compile(regex_str)
@@ -46,7 +46,6 @@ func Regex(regex_str string) []string {
 
 		// Check match string for name, if not match check readme
 		if pattern.MatchString(obj.Name) {
-			fmt.Printf("Match with %s\n", obj.Name)
 			matches = append(matches, obj.Name)
 		} else {
 			meta, err := client.Bucket(bucketName).Object(obj.Name).Attrs(ctx)
@@ -213,6 +212,6 @@ func History(name string, args ...string) [][]byte {
 	return mods
 }
 
-func main() {
-    fmt.Println(History("node-du"))
-}
+// func main() {
+//     fmt.Println(History("node-du"))
+// }
