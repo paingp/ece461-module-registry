@@ -12,10 +12,16 @@
         
         <p></p>
 
-        <form action="http://localhost:8080/reset">
-            <label for="X-Authorization">X-Authorization:</label>
-            <input type="text" id="X-Authorization_reset" name="X-Authorization_reset"><br><br>
-            <input type="submit" value="Submit">
+        <iframe name="hiddenFrame" width="0" height="0" style="display: none;"></iframe>
+
+        <form action="http://localhost:3000/reset", data-method="post", target="hiddenFrame">
+
+            <input type="hidden" name="_method" value="DELETE">
+            <input type="hidden" name="_token" value="{{ csrf_token() }}">
+
+            X-Authorization: <input type="text" name="X-Authorization">
+            <br><br>
+            <input type="submit" value="Submit" onclick=>
         </form>
     </body>
     
