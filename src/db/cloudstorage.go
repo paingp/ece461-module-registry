@@ -11,7 +11,7 @@ import (
 	"cloud.google.com/go/storage"
 )
 
-func createBucket(bucketName string) error {
+func CreateBucket(bucketName string) error {
 	ctx := context.Background()
 
 	// Sets your Google Cloud Platform project ID.
@@ -38,7 +38,7 @@ func createBucket(bucketName string) error {
 	return nil
 }
 
-func deleteBucket(bucketName string) error {
+func DeleteBucket(bucketName string) error {
 	ctx := context.Background()
 	client, err := storage.NewClient(ctx)
 	if err != nil {
@@ -58,7 +58,7 @@ func deleteBucket(bucketName string) error {
 	return nil
 }
 
-func uploadModule(module string, bucketName string) error {
+func UploadPackage(pkgDir string, bucketName string, objectName string) error {
 	ctx := context.Background()
 
 	// Creates a client.
@@ -70,10 +70,10 @@ func uploadModule(module string, bucketName string) error {
 
 	// Sets the name for the new bucket.
 	//_, object, _ := strings.Cut(module, "/")
-	object := module
+	object := objectName
 
 	// Open local file.
-	f, err := os.Open("temp/" + module + ".zip")
+	f, err := os.Open(pkgDir)
 	if err != nil {
 		return fmt.Errorf("os.Open: %v", err)
 	}

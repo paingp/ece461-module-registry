@@ -16,7 +16,6 @@ const pkgDirPath = "src/metrics/temp" // temp directory to store packages
 const auth_success = "ABC"
 
 func CreatePackage(content string, url string, jsprogram string) {
-	fmt.Print("Here 222")
 	packageData := models.PackageData{Content: content, URL: url, JSProgram: jsprogram}
 	//utils.PrintPackageData(packageData)
 	// Return Error 400 if both Content and URL are set
