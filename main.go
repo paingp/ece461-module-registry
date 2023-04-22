@@ -1,20 +1,43 @@
 package main
 
 import (
-	"fmt"
-	"os"
-	"tomr/src/metrics"
+	"log"
+	"tomr/src/handlers"
+	"tomr/src/utils"
 )
 
 func main() {
 
-	url := "https://www.npmjs.com/package/du"
+	//fmt.Println(os.Getenv("GITHUB_TOKEN"))
 
-	fmt.Println(os.Getenv("GITHUB_TOKEN"))
+	//url := "https://www.npmjs.com/package/du"
+	//gitUrl := utils.GetGithubUrl(url)
+	//utils.CloneRepo(gitUrl, "src/metrics/temp")
 
-	metrics.RatePackage(url)
+	/*
+		pkgDir := "src/metrics/temp/package.zip"
+		metadata := models.PackageMetadata{}
+		var readme []byte
+		utils.GetMetadataFromZip(pkgDir, &metadata, &readme)
+		fmt.Printf(string(readme))
+	*/
+	//pkgDir := ""
 
-	//dir := "C:/Users/paing/Desktop/College Assignments/Spring 2023/ECE 30861/dev/server/temp/package.zip"
+	// Encode/decode between base64 string and ZIP
 
-	//handlers.GetPackageMetadata(dir)
+	content, err := utils.ZipToBase64("src/metrics/temp/node-du.zip")
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	/*
+		err = utils.Base64ToZip(content, "src/metrics/temp/package.zip")
+		if err != nil {
+			log.Fatal(err)
+		}
+	*/
+	handlers.CreatePackage(content, "", "console.log('Hello World')")
+
+	//metrics.RatePackage(url, pkgDir)
+
 }
