@@ -1,11 +1,13 @@
 package metrics
 
 import (
+	"bytes"
 	"context"
 	"fmt"
-	"io"
+	"log"
 	"math"
 	"net/http"
+	"regexp"
 
 	//"os"
 	"os/exec"
@@ -16,6 +18,9 @@ import (
 
 	"github.com/shurcooL/githubv4"
 )
+
+// var compatibleLicenses = [...]string{"MIT", "LGPLv2.1", "Expat", "X11", "MPL-2.0", "Mozilla Public", "Artistic License 2", "GPLv2", "GPLv3"}
+const RegexLicense = `MIT|LGPLv2.1|Expat|X11|MPL-2.0|Mozilla Public|Artistic License 2|GPLv2|GPLv3`
 
 func getBusFactor(jsonRes map[string]interface{}) float64 {
 
@@ -239,21 +244,41 @@ func getResponsiveMaintainer(jsonRes map[string]interface{}) float64 {
 	return totalValue
 }
 
-func getLicenseFromReadme(readMe string) {
-
+func checkLicense(readMe *[]byte) float64 {
+	licenseCompatibility := 0.0
+	firstIdx := bytes.Index(*readMe, []byte("Licence"))
+	selected := string((*readMe)[firstIdx : firstIdx+200])
+	matched, err := regexp.MatchString(RegexLicense, selected)
+	if err != nil {
+		log.Fatal(err)
+		return licenseCompatibility
+	}
+	if matched {
+		licenseCompatibility = 1.0
+	}
+	return float64(licenseCompatibility)
 }
 
-func getLicenseScore(license string, readMe string) float64 {
+func getLicenseScore(license string, pkgDir string, readMe *[]byte) float64 {
 	licenseCompatibility := 0.0
-	compatibleLicenses := [9]string{"MIT", "LGPLv2.1", "Expat", "X11", "MPL-2.0", "Mozilla Public", "Artistic License 2", "GPLv2", "GPLv3"}
 	if license != "" {
-		for _, l := range compatibleLicenses {
-			if license == l {
-				licenseCompatibility = 1.0
-			}
+		matched, err := regexp.MatchString(RegexLicense, license)
+		if err != nil {
+			log.Fatal(err)
 		}
-	} else if readMe != "" {
-		getLicenseFromReadme(readMe)
+		if matched {
+			licenseCompatibility = 1.0
+		}
+		/*
+			for _, l := range compatibleLicenses {
+				if license == l {
+					fmt.Printf("Match with %s", l)
+					licenseCompatibility = 1.0
+				}
+			}
+		*/
+	} else if readMe != nil {
+		licenseCompatibility = checkLicense(readMe)
 	}
 	return licenseCompatibility
 }
@@ -266,7 +291,11 @@ func getGoodPinningPractices(url string, client *http.Client) float64 {
 
 	// Getting response from dependency sbom url
 	depUrl = url + "/dependency-graph/sbom"
-	resp = utils.GetDataFromGithub(client, depUrl)
+	resp, err := utils.GetDataFromGithub(client, depUrl)
+	if err != nil {
+		log.Fatalf("Failed to compute Pinning Practices Score for %s\n", url)
+		return -1
+	}
 
 	// Getting list of packages
 	packages := resp["sbom"].(map[string]interface{})["packages"].([]interface{})
@@ -294,97 +323,71 @@ func getGoodPinningPractices(url string, client *http.Client) float64 {
 	return pinned
 }
 
-func GetTotalLines(directory string) int {
+func getTotalLines(directory string) int {
 	lines := -1
 	cmd := exec.Command("cloc", "--csv", directory)
 
-	stdout, err := cmd.StdoutPipe()
+	var stdout, stderr bytes.Buffer
+	cmd.Stdout = &stdout
+	cmd.Stderr = &stderr
+
+	err := cmd.Run()
 	if err != nil {
-		panic(err)
+		log.Fatal("Failed to run cloc command")
+		return lines
+	} else if stderr.Len() != 0 {
+		log.Fatalf("Stderr: %s", stderr.String())
 	}
 
-	data, err := io.ReadAll(stdout)
-
-	if err != nil {
-		panic(err)
+	_, result, found := strings.Cut(stdout.String(), "SUM")
+	if found {
+		clocSum := strings.Split(result, ",")
+		clocSum[3] = strings.Trim(clocSum[3], "\n")
+		blank, _ := strconv.Atoi(clocSum[1])
+		comment, _ := strconv.Atoi(clocSum[2])
+		code, _ := strconv.Atoi(clocSum[3])
+		lines = blank + comment + code
 	}
-
-	fmt.Printf(string(data))
-	// TODO: Implement for Zip
-
+	//fmt.Printf("%d", lines)
 	return lines
 }
 
-/*
-func getTotalLines() float64 {
-	s := subprocess.New("cloc --csv src/metric_scores/repos &> temp.txt")
-	if err := s.Exec(); err != nil {
-		log.Fatal(err)
-	}
-
-	r, _ := regexp.Compile("SUM,[0-9]+,[0-9]+,([0-9]+)")
-
-	file, err := os.Open("temp.txt")
-	if err != nil {
-		log.Fatal(err)
-	}
-	defer file.Close()
-
-	scanner := bufio.NewScanner(file)
-
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	for scanner.Scan() {
-		str := r.FindString(scanner.Text())
-		if str != "" {
-			temp := strings.Split(str, ",")
-
-			comments, _ := strconv.ParseFloat(temp[1], 64)
-			blank, _ := strconv.ParseFloat(temp[2], 64)
-			code, _ := strconv.ParseFloat(temp[3], 64)
-			return comments + blank + code
-		}
-	}
-
-	if err := scanner.Err(); err != nil {
-		log.Fatal(err)
-	}
-	return -1
-}
-
-func getGoodEngineeringProcess(url string, client *http.Client) float64 {
-
-	var prUrl string
-	var link string
-	var sum float64
-	var total float64
-	var i int
+func getGoodEngineeringProcess(url string, client *http.Client, pkgDir string) float64 {
 	var resp []map[string]interface{}
 	var resp2 map[string]interface{}
+	var err error
 
 	// Getting URL of closed PRs
-	prUrl = url + "/pulls?state=closed"
+	prUrl := url + "/pulls?state=closed"
 
 	// Getting array of closed PRs
 	resp = utils.GetPRs(client, prUrl)
 
 	// Iterating through closed PRs and adding lines introduced - deleted
-	sum = 0
-	for i = 0; i < len(resp); i++ {
-		link = resp[i]["_links"].(map[string]interface{})["self"].(map[string]interface{})["href"].(string)
-		resp2 = utils.GetDataFromGithub(client, string(link))
+	sum := 0.0
+	for i := 0; i < len(resp); i++ {
+		link := resp[i]["_links"].(map[string]interface{})["self"].(map[string]interface{})["href"].(string)
+		resp2, err = utils.GetDataFromGithub(client, string(link))
+		if err != nil {
+			log.Fatalf("Failed to compute score for Engineering Process for %s\n", url)
+			return -1
+		}
 		sum = sum + resp2["additions"].(float64)
 		sum = sum - resp2["deletions"].(float64)
 	}
 
 	// Getting the total lines of code from original link
-	resp2 = utils.GetDataFromGithub(client, url)
+	resp2, err = utils.GetDataFromGithub(client, url)
+	if err != nil {
+		log.Fatalf("Failed to compute score for Engineering Process for %s\n", url)
+		return -1
+	}
 
-	total = getTotalLines()
+	fmt.Println(pkgDir)
 
-	sum = sum / total
+	total := getTotalLines(pkgDir)
+
+	sum = sum / float64(total)
 
 	if sum > 1.0 {
 		sum = 1
@@ -395,4 +398,3 @@ func getGoodEngineeringProcess(url string, client *http.Client) float64 {
 
 	return sum
 }
-*/

@@ -1,40 +1,36 @@
 package metrics
 
 import (
-	"context"
-	"fmt"
-	"net/http"
-	"os"
+	"tomr/models"
 	"tomr/src/utils"
-
-	"golang.org/x/oauth2"
 )
 
-func RatePackage(url string) {
-	gitUrl := utils.GetGithubUrl(url)
-	gitEndpoint := utils.GetGithubEndpoint(gitUrl)
-
-	src := oauth2.StaticTokenSource(
-		&oauth2.Token{AccessToken: os.Getenv("GITHUB_TOKEN")},
-	)
-	httpClient := oauth2.NewClient(context.Background(), src)
-
-	resp, error := httpClient.Get(gitEndpoint)
-
-	if (error != nil) || (resp.StatusCode != http.StatusOK) {
-		fmt.Println(resp.StatusCode)
-	}
-
+func RatePackage(url string, pkgDirectory string, license string, readMe *[]byte) error {
+	//gitEndpoint := utils.GetGithubEndpoint(url)
 	/*
-		jsonData := utils.GetDataFromGithub(httpClient, gitEndpoint)
+		src := oauth2.StaticTokenSource(
+			&oauth2.Token{AccessToken: os.Getenv("GITHUB_TOKEN")},
+		)
+		httpClient := oauth2.NewClient(context.Background(), src)
 
-		rating := models.PackageRating{}
+		jsonData, err := utils.GetDataFromGithub(httpClient, gitEndpoint)
+		if err != nil {
+			log.Fatalf("Failed to get data from GITHUB API rate package with URL: %s\n", url)
+		}
+	*/
+	rating := models.PackageRating{}
+	/*
 		rating.BusFactor = getBusFactor(jsonData)
 		rating.Correctness = getCorrectness(jsonData)
 		rating.RampUp = getRampUp(jsonData, httpClient)
 		rating.ResponsiveMaintainer = getResponsiveMaintainer(jsonData)
-		//rating.LicenseScore = getLicenseScore()
-		rating.GoodPinningPractice = getGoodPinningPractices(gitEndpoint, httpClient)
-		//rating.GoodEngineeringProcess = getGoodEngineeringProcess(jsonData, )
 	*/
+	rating.LicenseScore = getLicenseScore(license, pkgDirectory, readMe)
+	//rating.GoodPinningPractice = getGoodPinningPractices(gitEndpoint, httpClient)
+	//rating.GoodEngineeringProcess = getGoodEngineeringProcess(gitEndpoint, httpClient, pkgDirectory)
+
+	//os.RemoveAll("src/metrics/temp")
+	utils.PrintRating(rating)
+
+	return nil
 }

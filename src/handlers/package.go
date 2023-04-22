@@ -1,39 +1,39 @@
 package handlers
 
 import (
-	"encoding/json"
-	"io"
+	"fmt"
 	"log"
-	"os"
 	"path"
-	"strings"
-
 	"tomr/models"
+	"tomr/src/metrics"
 	"tomr/src/utils"
 )
 
-func GetPackageMetadata(directory string) {
-	metadata := models.PackageMetadata{}
-	if strings.HasSuffix(directory, ".zip") {
-		utils.GetMetadataFromZip(directory, &metadata)
-	} else {
-		pkgJsonPath := path.Join(directory, "package.json")
-		file, err := os.Open(pkgJsonPath)
+const pkgDirPath = "src/metrics/temp" // temp directory to store packages
+
+func CreatePackage(content string, url string, jsprogram string) {
+	packageData := models.PackageData{Content: content, URL: url, JSProgram: jsprogram}
+	//utils.PrintPackageData(packageData)
+	// Return Error 400 if both Content and URL are set
+	if (packageData.Content != "") && (packageData.URL != "") {
+		fmt.Printf("Error 400: Content and URL cannot be both set")
+	} else if packageData.Content != "" { // Only Content is set
+		// Decode base64 string into zip
+		pkgDir := path.Join(pkgDirPath, "package.zip")
+		utils.Base64ToZip(packageData.Content, pkgDir)
+		var readMe []byte
+		metadata, err := utils.GetMetadataFromZip(pkgDir, &readMe)
 		if err != nil {
-			panic(err)
+			log.Fatalf("Failed to get metadata from zip file\n")
 		}
-		dec := json.NewDecoder(file)
-		for {
-			if err := dec.Decode(&metadata); err == io.EOF {
-				break
-			} else if err != nil {
-				log.Fatal(err)
-			}
-		}
-		file.Close()
+		utils.PrintMetadata(metadata)
+		metrics.RatePackage(metadata.RepoURL, pkgDir, metadata.License, &readMe)
+	} else {
+		gitUrl := utils.GetGithubUrl(url)
+		pkgDir := utils.CloneRepo(gitUrl, pkgDirPath)
+		metrics.RatePackage(gitUrl, pkgDir, "", nil)
 	}
-	metadata.ID = metadata.Name + "_" + metadata.Version
-	utils.PrintMetadata(metadata)
+	// Upload package and store data in system
 }
 
 /*
