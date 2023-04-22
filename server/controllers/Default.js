@@ -60,7 +60,9 @@ module.exports.PackageByNameGet = function PackageByNameGet (req, res, next, nam
 };
 
 module.exports.PackageByRegExGet = function PackageByRegExGet (req, res, next, body, xAuthorization) {
-  
+
+  console.log(req);
+
   xAuthorization = req.headers['x-authorization'];
 
   if (xAuthorization == auth_code){
@@ -68,7 +70,6 @@ module.exports.PackageByRegExGet = function PackageByRegExGet (req, res, next, b
   }
   
   var regex_string = req.body.RegEx;
-  console.log(regex_string);
   
   Default.PackageByRegExGet(body, xAuthorization)
     .then(function (response) {

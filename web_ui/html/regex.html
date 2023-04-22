@@ -1,7 +1,6 @@
 <!DOCTYPE html>
     <html>
         <head>
-
             <title>ece461g17 module-registry</title>
 
         </head>
@@ -12,13 +11,18 @@
         
         <p></p>
 
-        <form action="http://localhost:8080/package/byRegEx">
-            <label for="X-Authorization">X-Authorization:</label>
-            <input type="text" id="X-Authorization_regex" name="X-Authorization_regex"><br><br>
-            <label for="regex_string">Regex String:</label>
-            <input type="text" id="regex_string" name="regex_string"><br><br>
-            <input type="submit" value="Submit">
+        
+        <a name="otherpage" href="reset.html"></a>
+
+        <form id="regex_form", action="http://localhost:3000/package/byRegEx", method="post", target="hiddenFrame">
+            X-Authorization: <input type="text" name="X-Authorization">
+            <br>
+            <br>
+            Regex String: <input type="text" name="Regex String">
+            <br><br>
+            <input type="submit" value="Submit" onclick="">
         </form>
+       
     </body>
     
     </html>

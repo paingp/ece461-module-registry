@@ -20,6 +20,7 @@ require (
 	github.com/acomagu/bufpipe v1.0.4 // indirect
 	github.com/cloudflare/circl v1.1.0 // indirect
 	github.com/emirpasic/gods v1.18.1 // indirect
+	github.com/go-chi/chi/v5 v5.0.8 // indirect
 	github.com/go-git/gcfg v1.5.0 // indirect
 	github.com/go-git/go-billy/v5 v5.4.1 // indirect
 	github.com/golang/groupcache v0.0.0-20200121045136-8c9f03a8e57e // indirect
