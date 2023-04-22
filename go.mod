@@ -14,6 +14,7 @@ require (
 	github.com/cloudflare/circl v1.1.0 // indirect
 	github.com/emirpasic/gods v1.18.1 // indirect
 	github.com/estebangarcia21/subprocess v0.0.0-20230313222538-7592a409aa3f // indirect
+	github.com/go-chi/chi/v5 v5.0.8 // indirect
 	github.com/go-git/gcfg v1.5.0 // indirect
 	github.com/go-git/go-billy/v5 v5.4.1 // indirect
 	github.com/go-git/go-git/v5 v5.6.1 // indirect
