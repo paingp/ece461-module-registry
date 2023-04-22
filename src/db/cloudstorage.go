@@ -1,4 +1,4 @@
-package ratom
+package db
 
 import (
 	"bytes"
@@ -11,7 +11,7 @@ import (
 	"cloud.google.com/go/storage"
 )
 
-func CreateBucket(bucketName string) error {
+func createBucket(bucketName string) error {
 	ctx := context.Background()
 
 	// Sets your Google Cloud Platform project ID.
@@ -35,6 +35,26 @@ func CreateBucket(bucketName string) error {
 	}
 
 	fmt.Printf("Bucket %v created.\n", bucketName)
+	return nil
+}
+
+func deleteBucket(bucketName string) error {
+	ctx := context.Background()
+	client, err := storage.NewClient(ctx)
+	if err != nil {
+		return fmt.Errorf("storage.NewClient: %v", err)
+	}
+	defer client.Close()
+
+	ctx, cancel := context.WithTimeout(ctx, time.Second*30)
+	defer cancel()
+
+	bucket := client.Bucket(bucketName)
+	if err := bucket.Delete(ctx); err != nil {
+		return fmt.Errorf("Bucket(%q).Delete: %v", bucketName, err)
+	}
+
+	fmt.Printf("Bucket %v deleted\n", bucketName)
 	return nil
 }
 
@@ -89,63 +109,5 @@ func uploadModule(module string, bucketName string) error {
 	}
 	fmt.Fprintf(&w, "Blob %v uploaded.\n", object)
 
-	return nil
-}
-
-// setMetadata sets an object's metadata.
-func setMetadata(w io.Writer, bucket, object string) error {
-	// bucket := "bucket-name"
-	// object := "object-name"
-	ctx := context.Background()
-	client, err := storage.NewClient(ctx)
-	if err != nil {
-		return fmt.Errorf("storage.NewClient: %v", err)
-	}
-	defer client.Close()
-
-	ctx, cancel := context.WithTimeout(ctx, time.Second*10)
-	defer cancel()
-
-	o := client.Bucket(bucket).Object(object)
-
-	// Optional: set a metageneration-match precondition to avoid potential race
-	// conditions and data corruptions. The request to update is aborted if the
-	// object's metageneration does not match your precondition.
-	attrs, err := o.Attrs(ctx)
-	if err != nil {
-		return fmt.Errorf("object.Attrs: %v", err)
-	}
-	o = o.If(storage.Conditions{MetagenerationMatch: attrs.Metageneration})
-
-	// Update the object to set the metadata.
-	objectAttrsToUpdate := storage.ObjectAttrsToUpdate{
-		Metadata: map[string]string{
-			"keyToAddOrUpdate": "value",
-		},
-	}
-	if _, err := o.Update(ctx, objectAttrsToUpdate); err != nil {
-		return fmt.Errorf("ObjectHandle(%q).Update: %v", object, err)
-	}
-	fmt.Fprintf(w, "Updated custom metadata for object %v in bucket %v.\n", object, bucket)
-	return nil
-}
-
-func deleteBucket(bucketName string) error {
-	ctx := context.Background()
-	client, err := storage.NewClient(ctx)
-	if err != nil {
-		return fmt.Errorf("storage.NewClient: %v", err)
-	}
-	defer client.Close()
-
-	ctx, cancel := context.WithTimeout(ctx, time.Second*30)
-	defer cancel()
-
-	bucket := client.Bucket(bucketName)
-	if err := bucket.Delete(ctx); err != nil {
-		return fmt.Errorf("Bucket(%q).Delete: %v", bucketName, err)
-	}
-
-	fmt.Printf("Bucket %v deleted\n", bucketName)
 	return nil
 }

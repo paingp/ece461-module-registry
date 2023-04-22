@@ -18,7 +18,9 @@ type PackageMetadata struct {
 
 	ID string `json:"ID"`
 
-	ReadMe string
+	License string `json:"License"`
+
+	RepoURL string `json:"Homepage"`
 }
 
 type PackageObject struct {
