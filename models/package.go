@@ -21,6 +21,10 @@ type PackageMetadata struct {
 	License string `json:"License"`
 
 	RepoURL string `json:"Homepage"`
+
+	Date string `json:"Date"`
+
+	Action string `json:"Action"`
 }
 
 type PackageObject struct {
