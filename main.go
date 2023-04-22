@@ -53,11 +53,40 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"context"
+	"database/sql"
+	"fmt"
+	"log"
+	"time"
 
+	"github.com/go-sql-driver/mysql"
 	"github.com/go-chi/chi/v5"
 )
 
+var pool *sql.DB //Database Connection pool
+
 func main() {
+	// Capture connection properties.
+    cfg := mysql.Config{
+        User:   os.Getenv("ece461table"),
+        Passwd: os.Getenv("ece461team17"),
+        Net:    "tcp",
+        Addr:   "35.192.125.31",
+        DBName: "ece461table",
+    }
+    // Get a database handle.
+    var err error
+    db, err = sql.Open("mysql", cfg.FormatDSN())
+    if err != nil {
+        log.Fatal(err)
+    }
+
+    pingErr := db.Ping()
+    if pingErr != nil {
+        log.Fatal(pingErr)
+    }
+    fmt.Println("Connected!")
+	
 	auth_success := "ABC"
 
 	router := chi.NewRouter()
