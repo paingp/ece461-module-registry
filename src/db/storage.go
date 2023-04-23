@@ -9,11 +9,27 @@ import (
 
 const BucketName = "tomr"
 
-func StorePackage(pkg models.PackageObject, pkgDir string) error {
+type Metadata_storage struct {
+	Name    string `json:"Name"`
+	Version string `json:"Version"`
+	ID      string `json:"ID"`
+}
+
+type Data_storage struct {
+	Content string `json:"Content"`
+	JSProgram string `json:"JSProgram"`
+}
+
+type Return_storage struct {
+	Metadata Metadata_storage `json:"metadata"`
+	Data     Data_storage `json:"data"`
+}
+
+func StorePackage(pkg models.PackageObject, pkgDir string) ([]byte,  error) {
 
 	err := UploadPackage(pkgDir, pkg.Metadata.ID)
 	if err != nil {
-		return fmt.Errorf("Failed to upload package to cloud storage\n%v", err)
+		return nil, fmt.Errorf("failed to upload package to cloud storage\n%v", err)
 	}
 
 	type objMeta struct {
@@ -50,7 +66,18 @@ func StorePackage(pkg models.PackageObject, pkgDir string) error {
 	if err != nil {
 		log.Fatal(err)
 	}
+
+	var return_val Return_storage
+	return_val.Metadata.Name = pkg.Metadata.Name
+	return_val.Metadata.Version = pkg.Metadata.Version
+	return_val.Metadata.ID = pkg.Metadata.ID
+	return_val.Data.Content = pkg.Data.Content
+	return_val.Data.JSProgram = pkg.Data.JSProgram
+
 	json.Unmarshal(bytes, &dataMap)
 	SetMetadata(dataMap, pkg.Metadata.ID)
-	return err
+
+	b, _ := json.MarshalIndent(return_val, "", "  ")
+
+	return b, err
 }

@@ -21,6 +21,7 @@ func RatePackage(url string, pkgDirectory string, rating *models.PackageRating, 
 
 	jsonData, err := utils.GetDataFromGithub(httpClient, gitEndpoint)
 	if err != nil {
+		fmt.Print("here")
 		log.Fatalf("Failed to get data from GITHUB API rate package with URL: %s\n", url)
 	}
 

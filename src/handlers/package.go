@@ -4,13 +4,13 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
-	"log"
 	"net/http"
 	"os"
 	"os/exec"
 	"path"
 	"regexp"
 	"time"
+	"strconv"
 
 	"tomr/models"
 	"tomr/src/db"
@@ -64,7 +64,6 @@ func CreatePackage(writer http.ResponseWriter, request *http.Request) {
 		var readMe []byte
 		// Return Error 400 if both Content and URL are set
 		if (packageData.Content != "") && (packageData.URL != "") {
-			
 			writer.WriteHeader(400)
 			writer.Write([]byte("There is missing field(s) in the PackageData/AuthenticationToken or it is formed improperly, or the AuthenticationToken is invalid."))
 			os.RemoveAll(pkgDirPath)
@@ -96,7 +95,7 @@ func CreatePackage(writer http.ResponseWriter, request *http.Request) {
 				writer.Write([]byte("Package is not uploaded due to the disqualified rating."))
 				// log.Fatalf("Failed to get metadata from zip file\n")
 				os.RemoveAll(pkgDirPath)
-				return 
+				return
 			}
 
 			writer.WriteHeader(201)
@@ -112,14 +111,15 @@ func CreatePackage(writer http.ResponseWriter, request *http.Request) {
 				writer.Write([]byte("Package is not uploaded due to the disqualified rating."))
 				// log.Fatalf("Failed to get metadata from zip file\n")
 				os.RemoveAll(pkgDirPath)
-				return 
+				return
 			}
 			// Check if package meets criteria for ingestion
 			utils.GetPackageMetadata(pkgDir, &metadata)
-			
+
 			if db.DoesPackageExist(metadata.ID) {
 				writer.WriteHeader(409)
 				writer.Write([]byte("Package exists already."))
+				os.RemoveAll(pkgDirPath)
 				return
 			}
 
@@ -129,20 +129,51 @@ func CreatePackage(writer http.ResponseWriter, request *http.Request) {
 				writer.Write([]byte("Unable to zip directory"))
 				// log.Fatalf("Failed to get metadata from zip file\n")
 				os.RemoveAll(pkgDirPath)
-				return 
+				return
 			}
 			pkgDir += ".zip"
 
 			writer.WriteHeader(201)
-			writer.Write([]byte("Success. Check the ID in the returned metadata for the official ID."))
+			writer.Write([]byte("Success. Check the ID in the returned metadata for the official ID.\n"))
 		}
 
 		pkg := models.PackageObject{Metadata: &metadata, Data: &packageData, Rating: &rating}
 
-		err := db.StorePackage(pkg, pkgDir)
-		if err != nil {
-			log.Fatal(err)
+		base64, error1 := utils.ZipToBase64(pkgDir)
+
+		if error1 != nil {
+			os.RemoveAll(pkgDirPath)
+			fmt.Print("could not convert to base64")
+			return
 		}
+
+		writePath := "src/db/upload.txt"
+		fileWriter, err2 := os.Create(writePath)
+		fileWriter.WriteString(base64)
+
+		if err2 != nil {
+			os.RemoveAll(writePath)
+			os.RemoveAll(pkgDirPath)
+			fmt.Print("Failed to write base64 encoding : ", err2)
+			return
+		}
+
+		return_json, err := db.StorePackage(pkg, writePath)
+		if err != nil {
+			os.RemoveAll(writePath)
+			os.RemoveAll(pkgDirPath)
+			fmt.Print("did not get return json")
+		}
+
+		var returnVal db.Return_storage
+		json.Unmarshal(return_json, &returnVal)
+
+		returnVal.Data.Content = base64
+		return_json, _ = json.MarshalIndent(returnVal, "", "  ")
+
+		writer.Write([]byte(string(return_json)))
+
+		os.RemoveAll(writePath)
 		os.RemoveAll(pkgDirPath)
 
 	}
@@ -339,16 +370,26 @@ func UpdatePackage(writer http.ResponseWriter, request *http.Request) {
 
 	if given_xAuth == auth_success {
 
+		if !db.DoesPackageExist(id) {
+			writer.WriteHeader(404)
+			writer.Write([]byte("Package does not exist"))
+			return
+		}
+
 		db.DeleteFile(bucket_name, id)
 
 		var recieve_package Package
 		body, _ := ioutil.ReadAll(request.Body)
 		json.Unmarshal(body, &recieve_package)
 
-		fmt.Print(recieve_package)
+		content := recieve_package.Data.Content
+		url := recieve_package.Data.URL
+		jsprogram := recieve_package.Data.JSProgram
 
-		writer.WriteHeader(200)
-		writer.Write([]byte("Version is updated."))
+		fmt.Print(content)
+		fmt.Print(url)
+		fmt.Print(jsprogram)
+
 	} else {
 		writer.WriteHeader(400)
 		writer.Write([]byte("There is missing field(s) in the PackageID/AuthenticationToken or it is formed improperly, or the AuthenticationToken is invalid."))
@@ -464,23 +505,100 @@ func RatePackage(writer http.ResponseWriter, request *http.Request) {
 
 	if given_xAuth == auth_success {
 
-		// Call go functions here
+		if !db.DoesPackageExist(id) {
+			writer.WriteHeader(404)
+			writer.Write([]byte("Package does not exist."))
+			return
+		}
 
-		writer.WriteHeader(201)
-		writer.Write([]byte("Success. Check the ID in the returned metadata for the official ID."))
-	} else if given_xAuth == "" || id == "" {
+		type ratings struct {
+			GoodPinningPractice  string
+			NetScore             string
+			PullRequest          string
+			ResponsiveMaintainer string
+			LicenseScore         string
+			RampUp               string
+			BusFactor            string
+			Correctness          string
+		}
+
+		attrs, _ := db.GetMetadata(bucket_name, id)
+		metadata := attrs.Metadata
+
+		var package_ratings ratings
+
+		package_ratings.GoodPinningPractice = metadata["GoodPinningPractice"]
+		tempFloat, err := strconv.ParseFloat(package_ratings.GoodPinningPractice, 32)
+		if err != nil || tempFloat < 0 || tempFloat > 1 {
+			writer.WriteHeader(500)
+			writer.Write([]byte("The package rating system choked on at least one of the metrics."))
+		}
+
+		package_ratings.NetScore = metadata["NetScore"]
+		tempFloat, err = strconv.ParseFloat(package_ratings.NetScore, 32)
+		if err != nil || tempFloat < 0 || tempFloat > 1 {
+			writer.WriteHeader(500)
+			writer.Write([]byte("The package rating system choked on at least one of the metrics."))
+		}
+
+		package_ratings.PullRequest = metadata["GoodEngineeringProcess"]
+		tempFloat, err = strconv.ParseFloat(package_ratings.PullRequest, 32)
+		if err != nil || tempFloat < 0 || tempFloat > 1 {
+			writer.WriteHeader(500)
+			writer.Write([]byte("The package rating system choked on at least one of the metrics."))
+		}
+
+		package_ratings.ResponsiveMaintainer = metadata["ResponsiveMaintainer"]
+		tempFloat, err = strconv.ParseFloat(package_ratings.ResponsiveMaintainer , 32)
+		if err != nil || tempFloat < 0 || tempFloat > 1 {
+			writer.WriteHeader(500)
+			writer.Write([]byte("The package rating system choked on at least one of the metrics."))
+		}
+
+		package_ratings.LicenseScore = metadata["LicenseScore"]
+		tempFloat, err = strconv.ParseFloat(package_ratings.LicenseScore , 32)
+		if err != nil || tempFloat < 0 || tempFloat > 1 {
+			writer.WriteHeader(500)
+			writer.Write([]byte("The package rating system choked on at least one of the metrics."))
+		}
+
+		package_ratings.RampUp = metadata["RampUp"]
+		tempFloat, err = strconv.ParseFloat(package_ratings.RampUp , 32)
+		if err != nil || tempFloat < 0 || tempFloat > 1 {
+			writer.WriteHeader(500)
+			writer.Write([]byte("The package rating system choked on at least one of the metrics."))
+		}
+
+		package_ratings.BusFactor = metadata["BusFactor"]
+		tempFloat, err = strconv.ParseFloat(package_ratings.BusFactor , 32)
+		if err != nil || tempFloat < 0 || tempFloat > 1 {
+			writer.WriteHeader(500)
+			writer.Write([]byte("The package rating system choked on at least one of the metrics."))
+		}
+
+		package_ratings.Correctness = metadata["Correctness"]
+		tempFloat, err = strconv.ParseFloat(package_ratings.Correctness , 32)
+		if err != nil || tempFloat < 0 || tempFloat > 1 {
+			writer.WriteHeader(500)
+			writer.Write([]byte("The package rating system choked on at least one of the metrics."))
+		}
+
+		writer.WriteHeader(200)
+		return_json, _ := json.MarshalIndent(package_ratings, "", "  ")
+
+		writer.Write([]byte(string(return_json)))
+		// writer.Write([]byte("Success. Check the ID in the returned metadata for the official ID."))
+	} else {
 		writer.WriteHeader(400)
 		writer.Write([]byte("There is missing field(s) in the PackageID/AuthenticationToken or it is formed improperly, or the AuthenticationToken is invalid."))
-	} else {
-		writer.WriteHeader(401)
 	}
 }
 
 func CreateAuthToken(writer http.ResponseWriter, request *http.Request) {
 
 	type User_struct struct {
-		Name string `json:"Name"`
-		IsAdmin bool `json:"IsAdmin"`
+		Name    string `json:"Name"`
+		IsAdmin bool   `json:"IsAdmin"`
 	}
 
 	type Secret_struct struct {
@@ -488,26 +606,26 @@ func CreateAuthToken(writer http.ResponseWriter, request *http.Request) {
 	}
 
 	type Auth struct {
-		User User_struct `json:"User"`
+		User   User_struct   `json:"User"`
 		Secret Secret_struct `json:"Secret"`
 	}
 
-	var auth_struct Auth;
+	var auth_struct Auth
 	body, _ := ioutil.ReadAll(request.Body)
 	json.Unmarshal(body, &auth_struct)
 
-	if auth_struct == (Auth{}) || auth_struct.User == (User_struct{}) || auth_struct.Secret == (Secret_struct{}){
+	if auth_struct == (Auth{}) || auth_struct.User == (User_struct{}) || auth_struct.Secret == (Secret_struct{}) {
 		writer.WriteHeader(400)
 		writer.Write([]byte("There is missing field(s) in the AuthenticationRequest or it is formed improperly."))
-		return 
+		return
 	}
 
 	auth_token := utils.Authenticate(auth_struct.User.Name, auth_struct.Secret.Password)
 
-	if auth_token == "err"{
+	if auth_token == "err" {
 		writer.WriteHeader(401)
 		writer.Write([]byte("The user or password is invalid."))
-		return 
+		return
 	}
 
 	writer.WriteHeader(200)
