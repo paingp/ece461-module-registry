@@ -3,10 +3,16 @@ package metrics
 import (
 	"bytes"
 	"context"
+	"encoding/json"
 	"fmt"
+	"io"
+	"io/fs"
 	"log"
 	"math"
 	"net/http"
+	"os"
+	"path"
+	"path/filepath"
 	"regexp"
 
 	//"os"
@@ -17,11 +23,15 @@ import (
 	"tomr/models"
 	"tomr/src/utils"
 
+	// "tomr/src/utils"
+
 	"github.com/shurcooL/githubv4"
 )
 
 // var compatibleLicenses = [...]string{"MIT", "LGPLv2.1", "Expat", "X11", "MPL-2.0", "Mozilla Public", "Artistic License 2", "GPLv2", "GPLv3"}
-const RegexLicense = `MIT|LGPLv2.1|Expat|X11|MPL-2.0|Mozilla Public|Artistic License 2|GPLv2|GPLv3`
+const RegexLicense = `mit|lgplv2.1|expat|x11|mpl-2.0|mozilla public|artistic license 2|gplv2|gplv3` //`MIT|LGPLv2.1|Expat|X11|MPL-2.0|Mozilla Public|Artistic License 2|GPLv2|GPLv3`
+
+var ReadMePath = ""
 
 func getBusFactor(jsonRes map[string]interface{}) float64 {
 
@@ -143,15 +153,15 @@ func getRampUp(jsonRes map[string]interface{}, client *http.Client) float64 {
 
 	// Collecting pertinent data from GITHUB API
 	if jsonRes["has_wiki"].(bool) {
-		wiki = .15
+		wiki = .3
 	}
 
 	if jsonRes["has_pages"].(bool) {
-		pages = .2
+		pages = .4
 	}
 
 	if jsonRes["has_discussions"].(bool) {
-		discussions = .25
+		discussions = .35
 	}
 
 	var commentsScore float32
@@ -159,19 +169,19 @@ func getRampUp(jsonRes map[string]interface{}, client *http.Client) float64 {
 
 	// Socring comments count based on different ranges of comments
 	if totalComments >= 0 && totalComments <= 10 {
-		commentsScore = 0.1
+		commentsScore = 0.2
 	} else if totalComments <= 50 {
 		commentsScore = 0.2
 	} else if totalComments <= 100 {
 		commentsScore = 0.25
 	} else if commentsScore <= 400 {
-		commentsScore = 0.325
+		commentsScore = 0.3
 	} else {
-		commentsScore = 0.4
+		commentsScore = 0.35
 	}
 
 	// Returning weighted sum of aspects
-	return float64(wiki + pages + discussions + float64(commentsScore))
+	return math.Min(float64(wiki+pages+discussions+float64(commentsScore)), 1.0)
 }
 
 func getResponsiveMaintainer(jsonRes map[string]interface{}) float64 {
@@ -245,10 +255,29 @@ func getResponsiveMaintainer(jsonRes map[string]interface{}) float64 {
 	return totalValue
 }
 
-func checkLicense(readMe *[]byte) float64 {
+func checkLicense(readMe []byte) float64 {
 	licenseCompatibility := 0.0
-	firstIdx := bytes.Index(*readMe, []byte("Licence"))
-	selected := string((*readMe)[firstIdx : firstIdx+200])
+
+	selected := ""
+
+	// fmt.Print("fist" , firstIdx, "last", lastIdx)
+	readMe = bytes.ToLower(readMe)
+	firstIdx := bytes.Index(readMe, []byte("license"))
+
+	if firstIdx == -1 {
+		return 0.0
+	}
+	firstIdx -= 15
+
+	lastIdx := len(readMe) - 1
+
+	if (lastIdx - firstIdx) >= 200 {
+		// fmt.Print("here99")
+		selected = string((readMe)[firstIdx : firstIdx+200])
+	} else {
+		// fmt.Print("here00")
+		selected = string((readMe)[firstIdx:lastIdx])
+	}
 	matched, err := regexp.MatchString(RegexLicense, selected)
 	if err != nil {
 		log.Fatal(err)
@@ -260,27 +289,81 @@ func checkLicense(readMe *[]byte) float64 {
 	return float64(licenseCompatibility)
 }
 
-func getLicenseScore(license string, pkgDir string, readMe *[]byte) float64 {
+func checkLicenseFromReadMe(directory string) float64 {
+	fmt.Print(directory)
+	err := filepath.WalkDir(directory, func(path string, d fs.DirEntry, err error) error {
+		maxDepth := 5
+		if err != nil {
+			return err
+		}
+		if d.IsDir() && strings.Count(path, string(os.PathSeparator)) > maxDepth {
+
+			return fs.SkipDir
+		} else {
+			matched, _ := regexp.MatchString(`(?i)readme`, path)
+			if matched {
+				if filepath.Ext(path) == ".md" {
+					ReadMePath = path
+				}
+			}
+		}
+		return nil
+	})
+	// fmt.Print("here11")
+	if err != nil {
+		fmt.Print(err)
+		return 0.0
+	}
+	// fmt.Print("here12")
+	fmt.Print(ReadMePath)
+	readMe, err := os.ReadFile(ReadMePath)
+	if err != nil {
+		log.Fatal(err)
+		return 0.0
+	}
+	// fmt.Print("here13")
+
+	return checkLicense(readMe)
+}
+
+func getLicenseScore(license string, pkgDir string, readMe []byte) float64 {
 	licenseCompatibility := 0.0
 	if license != "" {
 		matched, err := regexp.MatchString(RegexLicense, license)
 		if err != nil {
-			log.Fatal(err)
+			fmt.Print(err)
+		} else if matched {
+			licenseCompatibility = 1.0
 		}
+	} else if readMe != nil {
+		licenseCompatibility = checkLicense(readMe)
+	} else {
+		// fmt.Print("here 1")
+		pkgJsonFile, _ := os.Open(path.Join(pkgDir, "package.json"))
+		// fmt.Print("here 2")
+		dec := json.NewDecoder(pkgJsonFile)
+		// fmt.Print("here 3")
+		var license string
+		for {
+			if err := dec.Decode(&license); err == io.EOF {
+				break
+			}
+		}
+		// fmt.Print("here 4")
+		pkgJsonFile.Close()
+		// fmt.Print("here 5")
+		matched, _ := regexp.MatchString(RegexLicense, license)
+		// fmt.Print("here 6")
 		if matched {
 			licenseCompatibility = 1.0
 		}
-		/*
-			for _, l := range compatibleLicenses {
-				if license == l {
-					fmt.Printf("Match with %s", l)
-					licenseCompatibility = 1.0
-				}
-			}
-		*/
-	} else if readMe != nil {
-		licenseCompatibility = checkLicense(readMe)
+		if licenseCompatibility == 0 {
+			// fmt.Print("here 7")
+			licenseCompatibility = checkLicenseFromReadMe(pkgDir)
+			// fmt.Print("here8")
+		}
 	}
+	fmt.Print(licenseCompatibility)
 	return licenseCompatibility
 }
 
