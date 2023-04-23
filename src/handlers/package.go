@@ -383,7 +383,7 @@ func GetPackageByName(writer http.ResponseWriter, request *http.Request) {
 
 	if given_xAuth == auth_success {
 
-		results := utils.GetHistory(name, 0)
+		results := utils.History(name, 0)
 
 		if len(results) == 0 {
 			writer.WriteHeader(404)
@@ -421,7 +421,7 @@ func DeletePackageByName(writer http.ResponseWriter, request *http.Request) {
 
 	if given_xAuth == auth_success {
 
-		results := utils.GetHistory(name, 1)
+		results := utils.History(name, 1)
 
 		if len(results) == 0 {
 			writer.WriteHeader(404)

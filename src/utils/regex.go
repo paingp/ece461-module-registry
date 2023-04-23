@@ -4,9 +4,11 @@ import (
 	"context"
 	"fmt"
 	"regexp"
+	"tomr/src/db"
 
-	"strings"
 	"encoding/json"
+	"strings"
+
 	"cloud.google.com/go/storage"
 )
 
@@ -109,7 +111,7 @@ type module struct {
 
 // Call function with string name of desired package to fetch history, 
 // username of user then string ("true" or "false") if isAdmin
-func History(name string, args ...string) [][]byte {
+func History(name string, delete int, args ...string) [][]byte {
 	var user string 	// Name of user
 	var isAdmin bool 	// Is user admin or not
 	// var date string		// Date of upload
@@ -171,6 +173,10 @@ func History(name string, args ...string) [][]byte {
 		if pattern.MatchString(obj.Name) {
 			// fmt.Printf("Match with %s\n", obj.Name)
 			isMatch = true
+		}
+
+		if isMatch && delete == 1{
+			db.DeleteFile("tomr", obj.Name)
 		}
 
 		if isMatch {
