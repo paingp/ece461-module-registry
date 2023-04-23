@@ -14,6 +14,7 @@ import (
 	"strconv"
 	"strings"
 	"time"
+	"tomr/models"
 	"tomr/src/utils"
 
 	"github.com/shurcooL/githubv4"
@@ -397,4 +398,10 @@ func getGoodEngineeringProcess(url string, client *http.Client, pkgDir string) f
 	}
 
 	return sum
+}
+
+func getNetScore(r models.PackageRating) float64 {
+	netScore := ((40 * r.Correctness) + (35 * r.BusFactor) + (30 * r.ResponsiveMaintainer) + (30 * r.RampUp) +
+		(25 * r.LicenseScore) + (15 * r.GoodEngineeringProcess) + (10 * r.GoodPinningPractice)) / 185
+	return netScore
 }

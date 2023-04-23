@@ -1,7 +1,6 @@
 package db
 
 import (
-	"bytes"
 	"context"
 	"fmt"
 	"io"
@@ -10,6 +9,12 @@ import (
 
 	"cloud.google.com/go/storage"
 )
+
+func connectCloudStorage() (*storage.Client, context.Context, error) {
+	ctx := context.Background()
+	client, err := storage.NewClient(ctx)
+	return client, ctx, err
+}
 
 func CreateBucket(bucketName string) error {
 	ctx := context.Background()
@@ -58,19 +63,13 @@ func DeleteBucket(bucketName string) error {
 	return nil
 }
 
-func UploadPackage(pkgDir string, bucketName string, objectName string) error {
+func UploadPackage(pkgDir string, object string) error {
 	ctx := context.Background()
-
-	// Creates a client.
 	client, err := storage.NewClient(ctx)
 	if err != nil {
-		return fmt.Errorf("Failed to create client: %v", err)
+		return fmt.Errorf("storage.NewClient: %v", err)
 	}
 	defer client.Close()
-
-	// Sets the name for the new bucket.
-	//_, object, _ := strings.Cut(module, "/")
-	object := objectName
 
 	// Open local file.
 	f, err := os.Open(pkgDir)
@@ -82,14 +81,13 @@ func UploadPackage(pkgDir string, bucketName string, objectName string) error {
 	ctx, cancel := context.WithTimeout(ctx, time.Second*50)
 	defer cancel()
 
-	o := client.Bucket(bucketName).Object(object)
+	o := client.Bucket(BucketName).Object(object)
 
 	// Optional: set a generation-match precondition to avoid potential race
 	// conditions and data corruptions. The request to upload is aborted if the
 	// object's generation number does not match your precondition.
 	// For an object that does not yet exist, set the DoesNotExist precondition.
 	o = o.If(storage.Conditions{DoesNotExist: true})
-
 	// If the live object already exists in your bucket, set instead a
 	// generation-match precondition using the live object's generation number.
 	// attrs, err := o.Attrs(ctx)
@@ -100,14 +98,85 @@ func UploadPackage(pkgDir string, bucketName string, objectName string) error {
 
 	// Upload an object with storage.Writer.
 	wc := o.NewWriter(ctx)
-	var w bytes.Buffer
 	if _, err = io.Copy(wc, f); err != nil {
 		return fmt.Errorf("io.Copy: %v", err)
 	}
 	if err := wc.Close(); err != nil {
 		return fmt.Errorf("Writer.Close: %v", err)
 	}
-	fmt.Fprintf(&w, "Blob %v uploaded.\n", object)
+	return nil
+}
+
+func SetMetadata(metadata map[string]string, objectName string) error {
+	// bucket := "bucket-name"
+	// object := "object-name"
+	ctx := context.Background()
+	client, err := storage.NewClient(ctx)
+	if err != nil {
+		return fmt.Errorf("storage.NewClient: %v", err)
+	}
+	defer client.Close()
+
+	ctx, cancel := context.WithTimeout(ctx, time.Second*10)
+	defer cancel()
+
+	o := client.Bucket(BucketName).Object(objectName)
+
+	// Optional: set a metageneration-match precondition to avoid potential race
+	// conditions and data corruptions. The request to update is aborted if the
+	// object's metageneration does not match your precondition.
+	attrs, err := o.Attrs(ctx)
+	if err != nil {
+		return fmt.Errorf("object.Attrs: %v", err)
+	}
+	o = o.If(storage.Conditions{MetagenerationMatch: attrs.Metageneration})
+
+	// Update the object to set the metadata.
+	objectAttrsToUpdate := storage.ObjectAttrsToUpdate{
+		Metadata: metadata,
+	}
+	if _, err := o.Update(ctx, objectAttrsToUpdate); err != nil {
+		return fmt.Errorf("ObjectHandle(%q).Update: %v", objectName, err)
+	}
+	return nil
+}
+
+// downloadFile downloads an object to a file.
+func DownloadFile(w io.Writer, bucket, object string, destFileName string) error {
+	// bucket := "bucket-name"
+	// object := "object-name"
+	// destFileName := "file.txt"
+	ctx := context.Background()
+	client, err := storage.NewClient(ctx)
+	if err != nil {
+		return fmt.Errorf("storage.NewClient: %v", err)
+	}
+	defer client.Close()
+
+	ctx, cancel := context.WithTimeout(ctx, time.Second*50)
+	defer cancel()
+
+	f, err := os.Create(destFileName)
+	if err != nil {
+		return fmt.Errorf("os.Create: %v", err)
+	}
+
+	rc, err := client.Bucket(bucket).Object(object).NewReader(ctx)
+	if err != nil {
+		return fmt.Errorf("Object(%q).NewReader: %v", object, err)
+	}
+	defer rc.Close()
+
+	if _, err := io.Copy(f, rc); err != nil {
+		return fmt.Errorf("io.Copy: %v", err)
+	}
+
+	if err = f.Close(); err != nil {
+		return fmt.Errorf("f.Close: %v", err)
+	}
+
+	fmt.Fprintf(w, "Blob %v downloaded to local file %v\n", object, destFileName)
 
 	return nil
+
 }
