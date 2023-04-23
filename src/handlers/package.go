@@ -43,7 +43,7 @@ type Package struct {
 	Data     data     `json:"data"`
 }
 
-const pkgDirPath = "src/metrics/temp" // temp directory to store packages
+// const pkgDirPath = "src/metrics/temp" // temp directory to store packages
 
 func CreatePackage(content string, url string, jsprogram string) {
 	fmt.Print("Here 222")
