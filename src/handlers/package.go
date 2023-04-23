@@ -39,10 +39,8 @@ type data struct {
 
 type Package struct {
 	Metadata metadata `json:"metadata"`
-	Data     data      `json:"data"`
+	Data     data     `json:"data"`
 }
-
-const pkgDirPath = "src/metrics/temp" // temp directory to store packages
 
 func CreatePackage(content string, url string, jsprogram string) {
 	packageData := models.PackageData{Content: content, URL: url, JSProgram: jsprogram}
@@ -211,7 +209,7 @@ func RetrievePackage(writer http.ResponseWriter, request *http.Request) {
 
 		filepath := "src/handlers/readTo.txt"
 
-		errFile := db.DownloadFile(bucket_name, id, filepath)
+		errFile := db.DownloadFile(id, filepath)
 
 		if errFile != nil {
 			writer.WriteHeader(404)
@@ -253,13 +251,13 @@ func RetrievePackage(writer http.ResponseWriter, request *http.Request) {
 
 		writer.WriteHeader(200)
 		writer.Write([]byte(string(b)))
-	} else if given_xAuth == "" || id == ""{
+	} else if given_xAuth == "" || id == "" {
 		writer.WriteHeader(400)
 		writer.Write([]byte("There is missing field(s) in the PackageID/AuthenticationToken or it is formed improperly, or the AuthenticationToken is invalid."))
 	} else {
 		writer.Write([]byte("{\n  \"code\": 0,\n  \"message\": \"Other Error\"\n}"))
 	}
-	
+
 }
 
 func UpdatePackage(writer http.ResponseWriter, request *http.Request) {
@@ -326,7 +324,6 @@ func DeletePackage(writer http.ResponseWriter, request *http.Request) {
 
 func ListPackages(writer http.ResponseWriter, request *http.Request) {
 
-
 	request.ParseForm()
 
 	given_xAuth := request.Form["X-Authorization"][0]
@@ -377,7 +374,6 @@ func RatePackage(writer http.ResponseWriter, request *http.Request) {
 func CreateAuthToken(writer http.ResponseWriter, request *http.Request) {
 
 	// var auth_string
-
 
 	// body, _ := ioutil.ReadAll(request.Body)
 
@@ -457,4 +453,4 @@ func DeletePackageByName(writer http.ResponseWriter, request *http.Request) {
 		writer.WriteHeader(400)
 		writer.Write([]byte("There is missing field(s) in the PackageID/AuthenticationToken or it is formed improperly, or the AuthenticationToken is invalid."))
 	}
-}		
+}
