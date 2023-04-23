@@ -28,6 +28,23 @@ const pkgDirPath = "src/metrics/temp" // temp directory to store packages
 const auth_success = "ABC"
 const bucket_name = "tomr"
 
+type metadata struct {
+	Name    string `json:"Name"`
+	Version string `json:"Version"`
+	ID      string `json:"ID"`
+}
+
+type data struct {
+	Conent    string `json:"Content"`
+	URL       string `json:"URL"`
+	JSProgram string `json:"JSProgram"`
+}
+
+type Package struct {
+	Metadata metadata `json:"metadata"`
+	Data     data      `json:"data"`
+}
+
 func CreatePackage(content string, url string, jsprogram string) {
 	fmt.Print("Here 222")
 	packageData := models.PackageData{Content: content, URL: url, JSProgram: jsprogram}
@@ -201,23 +218,6 @@ func RetrievePackage(writer http.ResponseWriter, request *http.Request) {
 		attrs, _ := db.GetMetadata(bucket_name, id)
 		metadata := attrs.Metadata
 
-		type PackageMetadata struct {
-			Name    string `json:"Name"`
-			Version string `json:"Version"`
-			ID      string `json:"ID"`
-		}
-
-		type DataStruct struct {
-			Conent    string `json:"Content"`
-			URL       string `json:"URL"`
-			JSProgram string `json:"JSProgram"`
-		}
-
-		type Package struct {
-			Metadata PackageMetadata `json:"PackageMetadata"`
-			Data     DataStruct      `json:"DataStruct"`
-		}
-
 		var return_package Package
 		return_package.Metadata.Name = rs[1]
 		return_package.Metadata.Version = rs[2]
@@ -247,20 +247,32 @@ func UpdatePackage(writer http.ResponseWriter, request *http.Request) {
 
 	request.ParseForm()
 
-	given_xAuth := request.Form["X-Authorization"][0]
+	var given_xAuth string
+	var id string
 
-	id := chi.URLParam(request, "id")
+	if request.Form["X-Authorization"] != nil {
+		given_xAuth = request.Form["X-Authorization"][0]
+
+	} else {
+		given_xAuth = request.Header["X-Authorization"][0]
+	}
+
+	id = chi.URLParam(request, "id")
 
 	if given_xAuth == auth_success {
 
-		fmt.Print(id)
+		db.DeleteFile(bucket_name, id)
 
-		// Call go functions here
+		var recieve_package Package
+		body, _ := ioutil.ReadAll(request.Body)
+		json.Unmarshal(body, &recieve_package)
+
+		fmt.Print(recieve_package)
 
 		writer.WriteHeader(200)
 		writer.Write([]byte("Version is updated."))
 	} else {
-		writer.WriteHeader(401)
+		writer.WriteHeader(400)
 		writer.Write([]byte("There is missing field(s) in the PackageID/AuthenticationToken or it is formed improperly, or the AuthenticationToken is invalid."))
 	}
 }
@@ -295,7 +307,6 @@ func DeletePackage(writer http.ResponseWriter, request *http.Request) {
 
 func ListPackages(writer http.ResponseWriter, request *http.Request) {
 
-	fmt.Print("made it to ListPackages")
 
 	request.ParseForm()
 
@@ -348,22 +359,13 @@ func CreateAuthToken(writer http.ResponseWriter, request *http.Request) {
 
 	// var auth_string
 
-	type auth_body struct {
-		user struct {
-			name    string
-			isAdmin bool
-		}
-		secret struct {
-			password string
-		}
-	}
 
-	body, _ := ioutil.ReadAll(request.Body)
+	// body, _ := ioutil.ReadAll(request.Body)
 
-	var auth_token auth_body
-	json.Unmarshal(body, &auth_token)
+	// var auth_token auth_body
+	// json.Unmarshal(body, &auth_token)
 
-	fmt.Print(auth_token)
+	// fmt.Print(auth_token)
 
 }
 
