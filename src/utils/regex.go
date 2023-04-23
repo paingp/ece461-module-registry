@@ -135,7 +135,7 @@ func History(name string, args ...string) [][]byte {
 
 	// Create regex for string
 	
-	regex_str := "(" + name + `)\((.*?)\)`
+	regex_str := "^(" + name + `)\((.*?)\)\z`
 	pattern, err := regexp.Compile(regex_str)
 	if err != nil {
 		fmt.Printf("Could not create regex pattern: %v\n", err)
@@ -171,21 +171,6 @@ func History(name string, args ...string) [][]byte {
 		if pattern.MatchString(obj.Name) {
 			// fmt.Printf("Match with %s\n", obj.Name)
 			isMatch = true
-		} else {
-			meta, err := client.Bucket(bucketName).Object(obj.Name).Attrs(ctx)
-			if err != nil {
-				fmt.Printf("Could not get metadata: %v\n", err)
-				continue
-			}
-			readme, found := meta.Metadata["README"]
-			if found {
-				if pattern.MatchString(readme) {
-					// fmt.Printf("Matched in readme %s\n", obj.Name)
-					isMatch = true
-				}
-			} else {
-				fmt.Printf("readme not found")
-			}
 		}
 
 		if isMatch {
@@ -199,7 +184,7 @@ func History(name string, args ...string) [][]byte {
 			mod.Metadata.ID = strings.ToLower(rs[1])
 			mod.Date = "blank for now" // Default for now
 			mod.Action = "CREATE" // Default for now
-			b, err := json.Marshal(mod)
+			b, err := json.MarshalIndent(mod, "", "  ")
 
 			if err != nil {
 				fmt.Println(err)
