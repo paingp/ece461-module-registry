@@ -33,14 +33,12 @@ func RatePackage(url string, pkgDirectory string, rating *models.PackageRating, 
 	(*rating).BusFactor = getBusFactor(jsonData)
 	if ingestion {
 		if (*rating).BusFactor < 0.5 {
-			fmt.Print("BusFactor")
 			return fmt.Errorf("score too low for BusFactor to meet criteria for ingestion")
 		}
 	}
 	(*rating).Correctness = getCorrectness(jsonData)
 	if ingestion {
 		if (*rating).Correctness < 0.5 {
-			fmt.Print("Correctness")
 			return fmt.Errorf("score too low for correctness to meet criteria for ingestion")
 		}
 	}
@@ -48,14 +46,12 @@ func RatePackage(url string, pkgDirectory string, rating *models.PackageRating, 
 	// fmt.Print("Ramp up Score", (*rating).RampUp)
 	if ingestion {
 		if (*rating).RampUp < 0.5 {
-			fmt.Print("RampUp Score:" , (*rating).RampUp)
 			return fmt.Errorf("score too low for rampup to meet criteria for ingestion")
 		}
 	}
 	(*rating).ResponsiveMaintainer = getResponsiveMaintainer(jsonData)
 	if ingestion {
 		if (*rating).ResponsiveMaintainer < 0.5 {
-			fmt.Print("Responsieness: ", (*rating).ResponsiveMaintainer)
 			return fmt.Errorf("score too low for responsive maintainer to meet criteria for ingestion")
 		}
 	}
@@ -67,7 +63,6 @@ func RatePackage(url string, pkgDirectory string, rating *models.PackageRating, 
 
 	if ingestion {
 		if (*rating).LicenseScore < 0.5 {
-			fmt.Print("License")
 			return fmt.Errorf("score too low for license to meet criteria for ingestion")
 		}
 	}

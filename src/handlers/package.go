@@ -48,7 +48,6 @@ func CreatePackage(writer http.ResponseWriter, request *http.Request) {
 	}
 
 	if given_xAuth == auth_success {
-
 		var data models.PackageData
 		body, _ := ioutil.ReadAll(request.Body)
 		json.Unmarshal(body, &data)
@@ -65,7 +64,6 @@ func CreatePackage(writer http.ResponseWriter, request *http.Request) {
 		var readMe []byte
 		// Return Error 400 if both Content and URL are set
 		if (packageData.Content != "") && (packageData.URL != "") {
-
 			writer.WriteHeader(400)
 			writer.Write([]byte("There is missing field(s) in the PackageData/AuthenticationToken or it is formed improperly, or the AuthenticationToken is invalid."))
 			os.RemoveAll(pkgDirPath)
