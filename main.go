@@ -21,7 +21,7 @@ func main() {
     })
 
     router.Route("/package", func(r chi.Router) {
-        // r.Post("/", handlers.CreatePackage)
+        r.Post("/", handlers.CreatePackage)
         r.Get("/{id}", handlers.RetrievePackage)
         r.Put("/{id}", handlers.UpdatePackage)
         r.Delete("/{id}", handlers.DeletePackage)
