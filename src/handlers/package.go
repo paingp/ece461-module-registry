@@ -42,7 +42,7 @@ type Package struct {
 }
 
 func CreatePackage(content string, url string, jsprogram string) {
-	packageData := models.PackageData{Content: content, URL: url, JSProgram: jsprogram}
+packageData := models.PackageData{Content: content, URL: url, JSProgram: jsprogram}
 	pkgDir := ""
 	metadata := models.PackageMetadata{}
 	//utils.PrintPackageData(packageData)
