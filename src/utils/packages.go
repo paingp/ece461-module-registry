@@ -18,7 +18,7 @@ type pack struct {
 
 
 // Pass in as version, name
-func packages(version string, name string) [][]byte{
+func Packages(version string, name string) [][]byte{
 	var regex_str string
 
 	var packs [][]byte
@@ -80,7 +80,8 @@ func packages(version string, name string) [][]byte{
 			pack.Version = rs[2]
 			pack.Name = obj.Name
 
-			b, err := json.MarshalIndent(pack, "", "  ")
+			b, err := json.MarshalIndent(pack, "  ", "  ")
+
 			if err != nil {
 				fmt.Println(err)
 			}
@@ -88,10 +89,6 @@ func packages(version string, name string) [][]byte{
 			packs = append(packs, b)
 		}
 
-	}
-
-	for i := 0; i < len(packs); i++ {
-		fmt.Println(string(packs[i]))
 	}
 
 	return packs

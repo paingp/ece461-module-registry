@@ -34,7 +34,7 @@ func main() {
 
     router.Post("/package/byRegEx", handlers.GetPackageByRegEx)
 
-    router.Post("/`packages`", handlers.ListPackages)
+    router.Post("/packages", handlers.ListPackages)
 
     router.Delete("/reset", handlers.ResetRegistry)
 

@@ -42,11 +42,11 @@ type data struct {
 
 type Package struct {
 	Metadata metadata `json:"metadata"`
-	Data     data      `json:"data"`
+	Data     data     `json:"data"`
 }
 
 func CreatePackage(content string, url string, jsprogram string) {
-	fmt.Print("Here 222")
+	// fmt.Print("Here 222")
 	packageData := models.PackageData{Content: content, URL: url, JSProgram: jsprogram}
 	//utils.PrintPackageData(packageData)
 	// Return Error 400 if both Content and URL are set
@@ -234,13 +234,13 @@ func RetrievePackage(writer http.ResponseWriter, request *http.Request) {
 
 		writer.WriteHeader(200)
 		writer.Write([]byte(string(b)))
-	} else if given_xAuth == "" || id == ""{
+	} else if given_xAuth == "" || id == "" {
 		writer.WriteHeader(400)
 		writer.Write([]byte("There is missing field(s) in the PackageID/AuthenticationToken or it is formed improperly, or the AuthenticationToken is invalid."))
 	} else {
 		writer.Write([]byte("{\n  \"code\": 0,\n  \"message\": \"Other Error\"\n}"))
 	}
-	
+
 }
 
 func UpdatePackage(writer http.ResponseWriter, request *http.Request) {
@@ -307,17 +307,47 @@ func DeletePackage(writer http.ResponseWriter, request *http.Request) {
 
 func ListPackages(writer http.ResponseWriter, request *http.Request) {
 
-
 	request.ParseForm()
 
-	given_xAuth := request.Form["X-Authorization"][0]
+	var given_xAuth string
+
+	if request.Form["X-Authorization"] != nil {
+		given_xAuth = request.Form["X-Authorization"][0]
+
+	} else {
+		given_xAuth = request.Header["X-Authorization"][0]
+	}
 
 	if given_xAuth == auth_success {
 
-		// Call go functions here
+		type Pack struct {
+			Version string `json:"Version"`
+			Name    string `json:"Name"`
+		}
 
-		writer.WriteHeader(201)
-		writer.Write([]byte("Success. Check the ID in the returned metadata for the official ID."))
+		var Packs []Pack
+		err := json.NewDecoder(request.Body).Decode(&Packs)
+		if err != nil {
+			return
+		}
+		
+		writer.WriteHeader(200)
+
+		writer.Write([]byte("[\n"))
+
+		for i := 0; i < len(Packs); i++{
+			result := utils.Packages(Packs[i].Version, Packs[i].Name)
+			writer.Write([]byte("  "))
+
+			writer.Write([]byte(string(result[0])))
+
+			if i != len(Packs) - 1{
+				writer.Write([]byte(",\n"))
+			}
+		}
+
+		writer.Write([]byte("\n]"))
+
 	} else {
 		writer.WriteHeader(400)
 		writer.Write([]byte("There is missing field(s) in the PackageData/AuthenticationToken or it is formed improperly, or the AuthenticationToken is invalid."))
@@ -358,7 +388,6 @@ func RatePackage(writer http.ResponseWriter, request *http.Request) {
 func CreateAuthToken(writer http.ResponseWriter, request *http.Request) {
 
 	// var auth_string
-
 
 	// body, _ := ioutil.ReadAll(request.Body)
 
