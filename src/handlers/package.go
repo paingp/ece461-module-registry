@@ -46,11 +46,7 @@ type Package struct {
 // const pkgDirPath = "src/metrics/temp" // temp directory to store packages
 
 func CreatePackage(content string, url string, jsprogram string) {
-<<<<<<<<< Temporary merge branch 1
-=========
-	// fmt.Print("Here 222")
->>>>>>>>> Temporary merge branch 2
-	packageData := models.PackageData{Content: content, URL: url, JSProgram: jsprogram}
+packageData := models.PackageData{Content: content, URL: url, JSProgram: jsprogram}
 	pkgDir := ""
 	metadata := models.PackageMetadata{}
 	//utils.PrintPackageData(packageData)
