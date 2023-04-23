@@ -147,39 +147,42 @@ func getTotalCommentsGraphQL(jsonRes map[string]interface{}, client *http.Client
 }
 
 func getRampUp(jsonRes map[string]interface{}, client *http.Client) float64 {
-	wiki := 0.0
-	pages := 0.0
+	wiki := 0.25
+	pages := 0.25
 	discussions := 0.0
 
 	// Collecting pertinent data from GITHUB API
 	if jsonRes["has_wiki"].(bool) {
-		wiki = .3
+		wiki = .45
 	}
 
 	if jsonRes["has_pages"].(bool) {
-		pages = .4
+		pages = .5
 	}
 
 	if jsonRes["has_discussions"].(bool) {
-		discussions = .35
+		discussions = .45
 	}
+
+	fmt.Print("sum" , wiki + pages + discussions)
 
 	var commentsScore float32
 	totalComments := getTotalCommentsGraphQL(jsonRes, client)
 
 	// Socring comments count based on different ranges of comments
 	if totalComments >= 0 && totalComments <= 10 {
-		commentsScore = 0.2
-	} else if totalComments <= 50 {
-		commentsScore = 0.2
-	} else if totalComments <= 100 {
-		commentsScore = 0.25
-	} else if commentsScore <= 400 {
 		commentsScore = 0.3
-	} else {
+	} else if totalComments <= 50 {
+		commentsScore = 0.3
+	} else if totalComments <= 100 {
 		commentsScore = 0.35
+	} else if commentsScore <= 400 {
+		commentsScore = 0.4
+	} else {
+		commentsScore = 0.45
 	}
 
+	
 	// Returning weighted sum of aspects
 	return math.Min(float64(wiki+pages+discussions+float64(commentsScore)), 1.0)
 }
@@ -221,13 +224,13 @@ func getResponsiveMaintainer(jsonRes map[string]interface{}) float64 {
 
 	// Scoring the update data based on time ranges
 	if 0 < diff.Seconds() && diff.Seconds() <= 604800 { // 7 days timeline
-		updatedLast = .25
+		updatedLast = .45
 	} else if diff.Seconds() <= 15720000 { // 1/2 a year timeline
-		updatedLast = 0.12
+		updatedLast = 0.3
 	} else if diff.Seconds() <= 15720000*2 { // 1 year timeline
-		updatedLast = 0.06
+		updatedLast = 0.2
 	} else if diff.Seconds() <= 15720000*2*2 { //2 years timeline
-		updatedLast = 0.03
+		updatedLast = 0.1
 	} else {
 		updatedLast = 0
 	}
@@ -237,21 +240,21 @@ func getResponsiveMaintainer(jsonRes map[string]interface{}) float64 {
 
 	openIssues := jsonRes["open_issues"].(float64)
 
-	issuesScore := 0.0
+	issuesScore := 0.1
 
 	if hasIssues {
 		issuesScore = 0.35 * math.Min(1, openIssues/350)
 	}
 
 	archivedStatus := jsonRes["archived"].(bool)
-	archivedScore := 0.0
+	archivedScore := 0.05
 
 	if !archivedStatus {
 		archivedScore = 0.2
 	}
 
 	// Returning weighted sum of aspects
-	totalValue := float64(private + updatedLast + float32(issuesScore) + float32(archivedScore))
+	totalValue := math.Min(float64(private + updatedLast + float32(issuesScore) + float32(archivedScore)) , 1.0)
 	return totalValue
 }
 
