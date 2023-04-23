@@ -49,7 +49,7 @@ func DeleteFile(bucket, object string) error {
 	ctx := context.Background()
 	client, err := storage.NewClient(ctx)
 	if err != nil {
-			return fmt.Errorf("storage.NewClient: %v", err)
+		return fmt.Errorf("storage.NewClient: %v", err)
 	}
 	defer client.Close()
 
@@ -63,12 +63,12 @@ func DeleteFile(bucket, object string) error {
 	// if the object's generation number does not match your precondition.
 	attrs, err := o.Attrs(ctx)
 	if err != nil {
-			return fmt.Errorf("object.Attrs: %v", err)
+		return fmt.Errorf("object.Attrs: %v", err)
 	}
 	o = o.If(storage.Conditions{GenerationMatch: attrs.Generation})
 
 	if err := o.Delete(ctx); err != nil {
-			return fmt.Errorf("Object(%q).Delete: %v", object, err)
+		return fmt.Errorf("Object(%q).Delete: %v", object, err)
 	}
 	// fmt.Fprintf(w, "Blob %v deleted.\n", object)
 	return nil
@@ -172,11 +172,30 @@ func SetMetadata(metadata map[string]string, objectName string) error {
 	return nil
 }
 
-// downloadFile downloads an object to a file.
-func DownloadFile(w io.Writer, bucket, object string, destFileName string) error {
+func GetMetadata(bucket, object string) (*storage.ObjectAttrs, error) {
 	// bucket := "bucket-name"
 	// object := "object-name"
-	// destFileName := "file.txt"
+	ctx := context.Background()
+	client, err := storage.NewClient(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("storage.NewClient: %v", err)
+	}
+	defer client.Close()
+
+	ctx, cancel := context.WithTimeout(ctx, time.Second*10)
+	defer cancel()
+
+	o := client.Bucket(bucket).Object(object)
+	attrs, err := o.Attrs(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("Object(%q).Attrs: %v", object, err)
+	}
+
+	return attrs, nil
+
+}
+
+func DownloadFile(objectName string, destFileName string) error {
 	ctx := context.Background()
 	client, err := storage.NewClient(ctx)
 	if err != nil {
@@ -192,9 +211,9 @@ func DownloadFile(w io.Writer, bucket, object string, destFileName string) error
 		return fmt.Errorf("os.Create: %v", err)
 	}
 
-	rc, err := client.Bucket(bucket).Object(object).NewReader(ctx)
+	rc, err := client.Bucket(BucketName).Object(objectName).NewReader(ctx)
 	if err != nil {
-		return fmt.Errorf("Object(%q).NewReader: %v", object, err)
+		return fmt.Errorf("ObjectNe(%q).wReader: %v", objectName, err)
 	}
 	defer rc.Close()
 
@@ -203,10 +222,9 @@ func DownloadFile(w io.Writer, bucket, object string, destFileName string) error
 	}
 
 	if err = f.Close(); err != nil {
+		fmt.Print("here5")
 		return fmt.Errorf("f.Close: %v", err)
 	}
-
-	fmt.Fprintf(w, "Blob %v downloaded to local file %v\n", object, destFileName)
 
 	return nil
 

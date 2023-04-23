@@ -4,16 +4,14 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
-	"os"
-
 	"log"
 	"net/http"
+  "os"
 	"os/exec"
-	"time"
-
-	// "os/exec"
 	"path"
 	"regexp"
+  "time"
+
 	"tomr/models"
 	"tomr/src/db"
 	"tomr/src/metrics"
@@ -42,8 +40,6 @@ type Package struct {
 	Metadata metadata `json:"metadata"`
 	Data     data     `json:"data"`
 }
-
-const pkgDirPath = "src/metrics/temp" // temp directory to store packages
 
 func CreatePackage(content string, url string, jsprogram string) {
 	packageData := models.PackageData{Content: content, URL: url, JSProgram: jsprogram}
@@ -212,7 +208,7 @@ func RetrievePackage(writer http.ResponseWriter, request *http.Request) {
 
 		filepath := "src/handlers/readTo.txt"
 
-		errFile := db.DownloadFile(bucket_name, id, filepath)
+		errFile := db.DownloadFile(id, filepath)
 
 		if errFile != nil {
 			writer.WriteHeader(404)
@@ -500,4 +496,4 @@ func DeletePackageByName(writer http.ResponseWriter, request *http.Request) {
 		writer.WriteHeader(400)
 		writer.Write([]byte("There is missing field(s) in the PackageID/AuthenticationToken or it is formed improperly, or the AuthenticationToken is invalid."))
 	}
-}		
+}

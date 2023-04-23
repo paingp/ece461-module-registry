@@ -18,7 +18,8 @@ type pack struct {
 
 
 // Pass in as version, name
-func Packages(version string, name string) [][]byte{
+func packages(version string, name string) [][]byte{
+
 	var regex_str string
 
 	var packs [][]byte
