@@ -1,13 +1,12 @@
 package main
 
 import (
-    // "fmt"
+	"log"
+	"net/http"
 
-    "log"
-    "net/http"
+	"tomr/src/handlers"
 
-    "github.com/go-chi/chi/v5"
-    "tomr/src/handlers"
+	"github.com/go-chi/chi/v5"
 )
 func main() {
     router := chi.NewRouter()
