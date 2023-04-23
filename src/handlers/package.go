@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
+	"os"
 
 	// "io/ioutil"
 	"log"
@@ -16,6 +17,7 @@ import (
 	"path"
 	"regexp"
 	"tomr/models"
+	"tomr/src/db"
 	"tomr/src/metrics"
 	"tomr/src/utils"
 
@@ -24,6 +26,7 @@ import (
 
 const pkgDirPath = "src/metrics/temp" // temp directory to store packages
 const auth_success = "ABC"
+const bucket_name = "tomr"
 
 func CreatePackage(content string, url string, jsprogram string) {
 	fmt.Print("Here 222")
@@ -117,7 +120,7 @@ func GetPackageByRegEx(writer http.ResponseWriter, request *http.Request) {
 		}
 		writer.Write([]byte("\n]"))
 
-	} else if regex_string == "" || given_xAuth == "" {
+	} else {
 		writer.WriteHeader(400)
 		writer.Write([]byte("Status: 400 There is missing field(s) in the PackageRegEx/AuthenticationToken or it is formed improperly, or the AuthenticationToken is invalid."))
 	}
@@ -136,10 +139,6 @@ func ResetRegistry(writer http.ResponseWriter, request *http.Request) {
 	}
 
 	if given_xAuth == auth_success {
-
-		// exec.Command("python3", "src/handlers/test.py").Run()
-		//../gcp_calc/delete_bucket.py tomr
-		//src/gcp_calc/delete_bucket.py tomr
 
 		cmd := exec.Command("python3", "src/gcp_calc/deleteBucket.py", "tomr")
 		_, err := cmd.Output()
@@ -162,21 +161,86 @@ func RetrievePackage(writer http.ResponseWriter, request *http.Request) {
 
 	request.ParseForm()
 
-	given_xAuth := request.Form["X-Authorization"][0]
-	id := chi.URLParam(request, "username")
+	var given_xAuth string
+
+	if request.Form["X-Authorization"] != nil {
+		given_xAuth = request.Form["X-Authorization"][0]
+	} else {
+		given_xAuth = request.Header["X-Authorization"][0]
+	}
+
+	id := chi.URLParam(request, "id")
 
 	if given_xAuth == auth_success {
 
-		fmt.Print(id)
+		filepath := "src/handlers/readTo.txt"
 
-		// Call go functions here
+		errFile := db.DownloadFile(bucket_name, id, filepath)
+
+		if errFile != nil {
+			writer.WriteHeader(404)
+			writer.Write([]byte("Package does not exist."))
+			return
+		}
+
+		dat, err := os.ReadFile(filepath)
+
+		if err != nil {
+			panic(err)
+		}
+
+		base64 := string(dat) // get file contents
+
+		regex_str := "(.*?)" + `\((.*?)\)`
+		pattern, _ := regexp.Compile(regex_str)
+		rs := pattern.FindStringSubmatch(id)
+
+		// version rs[2]
+		// name rs[1]
+
+		attrs, _ := db.GetMetadata(bucket_name, id)
+		metadata := attrs.Metadata
+
+		type PackageMetadata struct {
+			Name    string `json:"Name"`
+			Version string `json:"Version"`
+			ID      string `json:"ID"`
+		}
+
+		type DataStruct struct {
+			Conent    string `json:"Content"`
+			URL       string `json:"URL"`
+			JSProgram string `json:"JSProgram"`
+		}
+
+		type Package struct {
+			Metadata PackageMetadata `json:"PackageMetadata"`
+			Data     DataStruct      `json:"DataStruct"`
+		}
+
+		var return_package Package
+		return_package.Metadata.Name = rs[1]
+		return_package.Metadata.Version = rs[2]
+		return_package.Metadata.ID = metadata["ID"]
+		return_package.Data.Conent = base64
+		return_package.Data.URL = metadata["URL"]
+		return_package.Data.JSProgram = metadata["JSProgram"]
+
+		b, err := json.MarshalIndent(return_package, "", "  ")
+
+		if err != nil {
+			fmt.Println(err)
+		}
 
 		writer.WriteHeader(200)
-		writer.Write([]byte("Return the package. Content is required."))
-	} else {
-		writer.WriteHeader(401)
+		writer.Write([]byte(string(b)))
+	} else if given_xAuth == "" || id == ""{
+		writer.WriteHeader(400)
 		writer.Write([]byte("There is missing field(s) in the PackageID/AuthenticationToken or it is formed improperly, or the AuthenticationToken is invalid."))
+	} else {
+		writer.Write([]byte("{\n  \"code\": 0,\n  \"message\": \"Other Error\"\n}"))
 	}
+	
 }
 
 func UpdatePackage(writer http.ResponseWriter, request *http.Request) {
@@ -184,6 +248,7 @@ func UpdatePackage(writer http.ResponseWriter, request *http.Request) {
 	request.ParseForm()
 
 	given_xAuth := request.Form["X-Authorization"][0]
+
 	id := chi.URLParam(request, "id")
 
 	if given_xAuth == auth_success {
@@ -204,14 +269,21 @@ func DeletePackage(writer http.ResponseWriter, request *http.Request) {
 
 	request.ParseForm()
 
-	given_xAuth := request.Form["X-Authorization"][0]
-	id := chi.URLParam(request, "id")
+	var given_xAuth string
+	var id string
+
+	if request.Form["X-Authorization"] != nil {
+		given_xAuth = request.Form["X-Authorization"][0]
+
+	} else {
+		given_xAuth = request.Header["X-Authorization"][0]
+	}
+
+	id = chi.URLParam(request, "id")
 
 	if given_xAuth == auth_success {
 
-		fmt.Print(id)
-
-		// Call go functions here
+		db.DeleteFile(bucket_name, id)
 
 		writer.WriteHeader(200)
 		writer.Write([]byte("Version is deleted."))
@@ -246,55 +318,122 @@ func RatePackage(writer http.ResponseWriter, request *http.Request) {
 
 	request.ParseForm()
 
-	given_xAuth := request.Form["X-Authorization"][0]
-	id := chi.URLParam(request, "id")
+	var given_xAuth string
+	var id string
+
+	if request.Form["X-Authorization"] != nil {
+		given_xAuth = request.Form["X-Authorization"][0]
+
+	} else {
+		given_xAuth = request.Header["X-Authorization"][0]
+	}
+
+	id = chi.URLParam(request, "id")
 
 	if given_xAuth == auth_success {
-
-		fmt.Print(id)
 
 		// Call go functions here
 
 		writer.WriteHeader(201)
 		writer.Write([]byte("Success. Check the ID in the returned metadata for the official ID."))
+	} else if given_xAuth == "" || id == "" {
+		writer.WriteHeader(400)
+		writer.Write([]byte("There is missing field(s) in the PackageID/AuthenticationToken or it is formed improperly, or the AuthenticationToken is invalid."))
 	} else {
 		writer.WriteHeader(401)
-		writer.Write([]byte("There is missing field(s) in the PackageID/AuthenticationToken or it is formed improperly, or the AuthenticationToken is invalid."))
 	}
 }
 
 func CreateAuthToken(writer http.ResponseWriter, request *http.Request) {
 
+	// var auth_string
+
+	type auth_body struct {
+		user struct {
+			name    string
+			isAdmin bool
+		}
+		secret struct {
+			password string
+		}
+	}
+
+	body, _ := ioutil.ReadAll(request.Body)
+
+	var auth_token auth_body
+	json.Unmarshal(body, &auth_token)
+
+	fmt.Print(auth_token)
+
 }
 
 func GetPackageByName(writer http.ResponseWriter, request *http.Request) {
 	request.ParseForm()
-	given_xAuth := request.Form["X-Authorization"][0]
+
+	var given_xAuth string
+
+	if request.Form["X-Authorization"] != nil {
+		given_xAuth = request.Form["X-Authorization"][0]
+
+	} else {
+		given_xAuth = request.Header["X-Authorization"][0]
+	}
+
+	name := chi.URLParam(request, "name")
 
 	if given_xAuth == auth_success {
 
-		// Call go functions here
+		results := utils.GetHistory(name, 0)
+
+		if len(results) == 0 {
+			writer.WriteHeader(404)
+			writer.Write([]byte("No such package."))
+			return
+		}
 
 		writer.WriteHeader(200)
-		writer.Write([]byte("Return the package history."))
-	} else {
-		writer.WriteHeader(401)
+
+		for _, i := range results {
+			writer.Write([]byte(string(i)))
+		}
+
+	} else if given_xAuth == "" || name == "" {
+		writer.WriteHeader(400)
 		writer.Write([]byte("There is missing field(s) in the PackageID/AuthenticationToken or it is formed improperly, or the AuthenticationToken is invalid."))
+	} else {
+		writer.Write([]byte("{\n  \"code\": 0,\n  \"message\": \"Other Error\"\n}"))
 	}
 }
 
 func DeletePackageByName(writer http.ResponseWriter, request *http.Request) {
 	request.ParseForm()
-	given_xAuth := request.Form["X-Authorization"][0]
+
+	var given_xAuth string
+
+	if request.Form["X-Authorization"] != nil {
+		given_xAuth = request.Form["X-Authorization"][0]
+
+	} else {
+		given_xAuth = request.Header["X-Authorization"][0]
+	}
+
+	name := chi.URLParam(request, "name")
 
 	if given_xAuth == auth_success {
 
-		// Call go functions here
+		results := utils.GetHistory(name, 1)
+
+		if len(results) == 0 {
+			writer.WriteHeader(404)
+			writer.Write([]byte("Package does not exist."))
+			return
+		}
 
 		writer.WriteHeader(200)
-		writer.Write([]byte("Return the package history."))
+		writer.Write([]byte("Package is deleted."))
+
 	} else {
-		writer.WriteHeader(401)
+		writer.WriteHeader(400)
 		writer.Write([]byte("There is missing field(s) in the PackageID/AuthenticationToken or it is formed improperly, or the AuthenticationToken is invalid."))
 	}
 }

@@ -114,6 +114,8 @@ func GetReadMeFromZip(readme *zip.File) []byte {
 	return bytes
 }
 
+
+
 /*
 func walk(path string, d fs.DirEntry, err error) error {
 	maxDepth := 1

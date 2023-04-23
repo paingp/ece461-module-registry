@@ -38,6 +38,37 @@ func createBucket(bucketName string) error {
 	return nil
 }
 
+func DeleteFile(bucket, object string) error {
+	// bucket := "bucket-name"
+	// object := "object-name"
+	ctx := context.Background()
+	client, err := storage.NewClient(ctx)
+	if err != nil {
+			return fmt.Errorf("storage.NewClient: %v", err)
+	}
+	defer client.Close()
+
+	ctx, cancel := context.WithTimeout(ctx, time.Second*10)
+	defer cancel()
+
+	o := client.Bucket(bucket).Object(object)
+
+	// Optional: set a generation-match precondition to avoid potential race
+	// conditions and data corruptions. The request to delete the file is aborted
+	// if the object's generation number does not match your precondition.
+	attrs, err := o.Attrs(ctx)
+	if err != nil {
+			return fmt.Errorf("object.Attrs: %v", err)
+	}
+	o = o.If(storage.Conditions{GenerationMatch: attrs.Generation})
+
+	if err := o.Delete(ctx); err != nil {
+			return fmt.Errorf("Object(%q).Delete: %v", object, err)
+	}
+	// fmt.Fprintf(w, "Blob %v deleted.\n", object)
+	return nil
+}
+
 func deleteBucket(bucketName string) error {
 	ctx := context.Background()
 	client, err := storage.NewClient(ctx)
@@ -110,4 +141,65 @@ func uploadModule(module string, bucketName string) error {
 	fmt.Fprintf(&w, "Blob %v uploaded.\n", object)
 
 	return nil
+}
+
+func GetMetadata(bucket, object string) (*storage.ObjectAttrs, error) {
+	// bucket := "bucket-name"
+	// object := "object-name"
+	ctx := context.Background()
+	client, err := storage.NewClient(ctx)
+	if err != nil {
+			return nil, fmt.Errorf("storage.NewClient: %v", err)
+	}
+	defer client.Close()
+
+	ctx, cancel := context.WithTimeout(ctx, time.Second*10)
+	defer cancel()
+
+	o := client.Bucket(bucket).Object(object)
+	attrs, err := o.Attrs(ctx)
+	if err != nil {
+			return nil, fmt.Errorf("Object(%q).Attrs: %v", object, err)
+	}
+
+	return attrs, nil 
+
+}
+
+func DownloadFile(bucket, object string, destFileName string) error {
+	// bucket := "bucket-name"
+	// object := "object-name"
+	// destFileName := "file.txt"
+	ctx := context.Background()
+	client, err := storage.NewClient(ctx)
+	if err != nil {
+			return fmt.Errorf("storage.NewClient: %v", err)
+	}
+	defer client.Close()
+
+	ctx, cancel := context.WithTimeout(ctx, time.Second*50)
+	defer cancel()
+
+	f, err := os.Create(destFileName)
+	if err != nil {
+			return fmt.Errorf("os.Create: %v", err)
+	}
+
+	rc, err := client.Bucket(bucket).Object(object).NewReader(ctx)
+	if err != nil {
+			return fmt.Errorf("ObjectNe(%q).wReader: %v", object, err)
+	}
+	defer rc.Close()
+
+	if _, err := io.Copy(f, rc); err != nil {
+			return fmt.Errorf("io.Copy: %v", err)
+	}
+
+	if err = f.Close(); err != nil {
+		fmt.Print("here5")
+			return fmt.Errorf("f.Close: %v", err)
+	}
+
+	return nil
+
 }
