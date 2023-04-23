@@ -4,15 +4,14 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
-	"os"
-
 	"log"
 	"net/http"
+  "os"
 	"os/exec"
-
-	// "os/exec"
 	"path"
 	"regexp"
+  "time"
+
 	"tomr/models"
 	"tomr/src/db"
 	"tomr/src/metrics"
@@ -326,17 +325,61 @@ func ListPackages(writer http.ResponseWriter, request *http.Request) {
 
 	request.ParseForm()
 
-	given_xAuth := request.Form["X-Authorization"][0]
+	var given_xAuth string
 
-	if given_xAuth == auth_success {
+	if request.Form["X-Authorization"] != nil {
+		given_xAuth = request.Form["X-Authorization"][0]
 
-		// Call go functions here
-
-		writer.WriteHeader(201)
-		writer.Write([]byte("Success. Check the ID in the returned metadata for the official ID."))
 	} else {
+		given_xAuth = request.Header["X-Authorization"][0]
+	}
+
+	if given_xAuth == auth_success {		
+
+		type Pack struct {
+			Version string `json:"Version"`
+			Name    string `json:"Name"`
+		}
+
+		var Packs []Pack
+		c1 := make(chan []Pack, 1)
+
+		go func() {
+			err := json.NewDecoder(request.Body).Decode(&Packs)
+			if err != nil {
+				return
+			}
+			c1 <- Packs
+		}()
+		
+		select {
+			case res := <-c1:
+				writer.WriteHeader(200)
+
+				writer.Write([]byte("[\n"))
+
+				for i := 0; i < len(res); i++ {
+					result := utils.Packages(res[i].Version, res[i].Name)
+					writer.Write([]byte("  "))
+
+					writer.Write([]byte(string(result[0])))
+
+					if i != len(res)-1 {
+						writer.Write([]byte(",\n"))
+					}
+				}
+
+				writer.Write([]byte("\n]"))
+			case <-time.After(60 * time.Second):
+				writer.WriteHeader(413)
+				writer.Write([]byte("Too many packages returned."))
+		}
+	
+	} else if given_xAuth == "" {
 		writer.WriteHeader(400)
 		writer.Write([]byte("There is missing field(s) in the PackageData/AuthenticationToken or it is formed improperly, or the AuthenticationToken is invalid."))
+	} else {
+		writer.Write([]byte("{\n  \"code\": 0,\n  \"message\": \"Other Error\"\n}"))
 	}
 
 }
