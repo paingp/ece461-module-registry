@@ -68,26 +68,26 @@ func CreatePackage(writer http.ResponseWriter, request *http.Request) {
 		if (packageData.Content != "") && (packageData.URL != "") {
 			writer.WriteHeader(400)
 			writer.Write([]byte("There is missing field(s) in the PackageData/AuthenticationToken or it is formed improperly, or the AuthenticationToken is invalid."))
-			os.RemoveAll(pkgDirPath)
+			os.RemoveAll(PkgDirPath)
 			return
 
 		} else if packageData.Content != "" { // Only Content is set
 			// Decode base64 string into zip
-			pkgDir = path.Join(pkgDirPath, "package.zip")
+			pkgDir = path.Join(PkgDirPath, "package.zip")
 			utils.Base64ToZip(packageData.Content, pkgDir)
 			err := utils.GetMetadataFromZip(pkgDir, &metadata, &readMe)
 			if err != nil {
 				writer.WriteHeader(400)
 				writer.Write([]byte("Error no metadata in zip"))
 				// log.Fatalf("Failed to get metadata from zip file\n")
-				os.RemoveAll(pkgDirPath)
+				os.RemoveAll(PkgDirPath)
 				return
 			}
 			metadata.ID = metadata.Name + "(" + metadata.Version + ")"
 			if db.DoesPackageExist(metadata.ID) {
 				writer.WriteHeader(409)
 				writer.Write([]byte("Package exists already."))
-				os.RemoveAll(pkgDirPath)
+				os.RemoveAll(PkgDirPath)
 				return
 			}
 
@@ -96,7 +96,7 @@ func CreatePackage(writer http.ResponseWriter, request *http.Request) {
 				writer.WriteHeader(424)
 				writer.Write([]byte("Package is not uploaded due to the disqualified rating."))
 				// log.Fatalf("Failed to get metadata from zip file\n")
-				os.RemoveAll(pkgDirPath)
+				os.RemoveAll(PkgDirPath)
 				return
 			}
 
@@ -105,14 +105,14 @@ func CreatePackage(writer http.ResponseWriter, request *http.Request) {
 
 		} else { // Only URL is set
 			gitUrl := utils.GetGithubUrl(url)
-			pkgDir = utils.CloneRepo(gitUrl, pkgDirPath)
+			pkgDir = utils.CloneRepo(gitUrl, PkgDirPath)
 			err := metrics.RatePackage(gitUrl, pkgDir, &rating, "", nil)
 			if err != nil {
 				fmt.Print(err)
 				writer.WriteHeader(424)
 				writer.Write([]byte("Package is not uploaded due to the disqualified rating."))
 				// log.Fatalf("Failed to get metadata from zip file\n")
-				os.RemoveAll(pkgDirPath)
+				os.RemoveAll(PkgDirPath)
 				return
 			}
 			// Check if package meets criteria for ingestion
@@ -121,7 +121,7 @@ func CreatePackage(writer http.ResponseWriter, request *http.Request) {
 			if db.DoesPackageExist(metadata.ID) {
 				writer.WriteHeader(409)
 				writer.Write([]byte("Package exists already."))
-				os.RemoveAll(pkgDirPath)
+				os.RemoveAll(PkgDirPath)
 				return
 			}
 
@@ -130,7 +130,7 @@ func CreatePackage(writer http.ResponseWriter, request *http.Request) {
 				writer.WriteHeader(400)
 				writer.Write([]byte("Unable to zip directory"))
 				// log.Fatalf("Failed to get metadata from zip file\n")
-				os.RemoveAll(pkgDirPath)
+				os.RemoveAll(PkgDirPath)
 				return
 			}
 			pkgDir += ".zip"
@@ -387,7 +387,7 @@ func UpdatePackage(writer http.ResponseWriter, request *http.Request) {
 			return
 		}
 
-		db.DeleteFile(bucket_name, id)
+		db.DeleteObject(BucketName, id)
 
 		var recieve_package Package
 		body, _ := io.ReadAll(request.Body)
