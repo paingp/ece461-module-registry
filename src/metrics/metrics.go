@@ -11,19 +11,16 @@ import (
 	"math"
 	"net/http"
 	"os"
+	"os/exec"
 	"path"
 	"path/filepath"
 	"regexp"
-
-	//"os"
-	"os/exec"
 	"strconv"
 	"strings"
 	"time"
+
 	"tomr/models"
 	"tomr/src/utils"
-
-	// "tomr/src/utils"
 
 	"github.com/shurcooL/githubv4"
 )
@@ -266,7 +263,7 @@ func checkLicense(readMe []byte) float64 {
 	firstIdx := bytes.Index(readMe, []byte("license"))
 
 	if firstIdx == -1 {
-		return 0.0
+		return 0
 	}
 	firstIdx -= 15
 
@@ -365,6 +362,7 @@ func getLicenseScore(license string, pkgDir string, readMe *[]byte) float64 {
 			licenseCompatibility = checkLicenseFromReadMe(pkgDir)
 		}
 	}
+	//fmt.Print(licenseCompatibility)
 	return licenseCompatibility
 }
 

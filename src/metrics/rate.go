@@ -21,6 +21,7 @@ func RatePackage(url string, pkgDirectory string, rating *models.PackageRating, 
 
 	jsonData, err := utils.GetDataFromGithub(httpClient, gitEndpoint)
 	if err != nil {
+		fmt.Print("here")
 		log.Fatalf("Failed to get data from GITHUB API rate package with URL: %s\n", url)
 	}
 
@@ -70,8 +71,8 @@ func RatePackage(url string, pkgDirectory string, rating *models.PackageRating, 
 
 	(*rating).NetScore = getNetScore(*rating)
 
-	os.RemoveAll("src/metrics/temp")
-	utils.PrintRating((*rating))
+	//os.RemoveAll("src/metrics/temp")
+	//utils.PrintRating((*rating))
 
 	return err
 }

@@ -16,14 +16,21 @@ type Metadata_storage struct {
 }
 
 type Data_storage struct {
-	Content   string `json:"Content"`
+	Content string `json:"Content"`
 	JSProgram string `json:"JSProgram"`
 }
 
 type Return_storage struct {
 	Metadata Metadata_storage `json:"metadata"`
-	Data     Data_storage     `json:"data"`
+	Data     Data_storage `json:"data"`
 }
+
+func StorePackage(pkg models.PackageObject, pkgDir string) ([]byte,  error) {
+
+	err := UploadPackage(pkgDir, pkg.Metadata.ID)
+	if err != nil {
+		return fmt.Errorf("Failed to upload package to cloud storage\n%v", err)
+	}
 
 type ObjMetadata struct {
 	Name    string `json:"Name"`

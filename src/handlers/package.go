@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"io/ioutil"
 	"net/http"
 	"os"
 	"os/exec"
@@ -50,14 +51,12 @@ func CreatePackage(writer http.ResponseWriter, request *http.Request) {
 
 	if given_xAuth == auth_success {
 		var data models.PackageData
-		body, _ := io.ReadAll(request.Body)
+		body, _ := ioutil.ReadAll(request.Body)
 		json.Unmarshal(body, &data)
 
 		content := data.Content
 		url := data.URL
 		jsprogram := data.JSProgram
-		fmt.Printf("Url: %s\n", url)
-		fmt.Printf("JSProgram: %s\n", jsprogram)
 
 		packageData := models.PackageData{Content: content, URL: url, JSProgram: jsprogram}
 		pkgDir := ""
@@ -69,26 +68,26 @@ func CreatePackage(writer http.ResponseWriter, request *http.Request) {
 		if (packageData.Content != "") && (packageData.URL != "") {
 			writer.WriteHeader(400)
 			writer.Write([]byte("There is missing field(s) in the PackageData/AuthenticationToken or it is formed improperly, or the AuthenticationToken is invalid."))
-			os.RemoveAll(PkgDirPath)
+			os.RemoveAll(pkgDirPath)
 			return
 
 		} else if packageData.Content != "" { // Only Content is set
 			// Decode base64 string into zip
-			pkgDir = path.Join(PkgDirPath, "package.zip")
+			pkgDir = path.Join(pkgDirPath, "package.zip")
 			utils.Base64ToZip(packageData.Content, pkgDir)
 			err := utils.GetMetadataFromZip(pkgDir, &metadata, &readMe)
 			if err != nil {
 				writer.WriteHeader(400)
 				writer.Write([]byte("Error no metadata in zip"))
 				// log.Fatalf("Failed to get metadata from zip file\n")
-				os.RemoveAll(PkgDirPath)
+				os.RemoveAll(pkgDirPath)
 				return
 			}
 			metadata.ID = metadata.Name + "(" + metadata.Version + ")"
 			if db.DoesPackageExist(metadata.ID) {
 				writer.WriteHeader(409)
 				writer.Write([]byte("Package exists already."))
-				os.RemoveAll(PkgDirPath)
+				os.RemoveAll(pkgDirPath)
 				return
 			}
 
@@ -97,7 +96,7 @@ func CreatePackage(writer http.ResponseWriter, request *http.Request) {
 				writer.WriteHeader(424)
 				writer.Write([]byte("Package is not uploaded due to the disqualified rating."))
 				// log.Fatalf("Failed to get metadata from zip file\n")
-				os.RemoveAll(PkgDirPath)
+				os.RemoveAll(pkgDirPath)
 				return
 			}
 
@@ -106,14 +105,14 @@ func CreatePackage(writer http.ResponseWriter, request *http.Request) {
 
 		} else { // Only URL is set
 			gitUrl := utils.GetGithubUrl(url)
-			pkgDir = utils.CloneRepo(gitUrl, PkgDirPath)
+			pkgDir = utils.CloneRepo(gitUrl, pkgDirPath)
 			err := metrics.RatePackage(gitUrl, pkgDir, &rating, "", nil)
 			if err != nil {
 				fmt.Print(err)
 				writer.WriteHeader(424)
 				writer.Write([]byte("Package is not uploaded due to the disqualified rating."))
 				// log.Fatalf("Failed to get metadata from zip file\n")
-				os.RemoveAll(PkgDirPath)
+				os.RemoveAll(pkgDirPath)
 				return
 			}
 			// Check if package meets criteria for ingestion
@@ -122,7 +121,7 @@ func CreatePackage(writer http.ResponseWriter, request *http.Request) {
 			if db.DoesPackageExist(metadata.ID) {
 				writer.WriteHeader(409)
 				writer.Write([]byte("Package exists already."))
-				os.RemoveAll(PkgDirPath)
+				os.RemoveAll(pkgDirPath)
 				return
 			}
 
@@ -131,7 +130,7 @@ func CreatePackage(writer http.ResponseWriter, request *http.Request) {
 				writer.WriteHeader(400)
 				writer.Write([]byte("Unable to zip directory"))
 				// log.Fatalf("Failed to get metadata from zip file\n")
-				os.RemoveAll(PkgDirPath)
+				os.RemoveAll(pkgDirPath)
 				return
 			}
 			pkgDir += ".zip"
@@ -179,6 +178,9 @@ func CreatePackage(writer http.ResponseWriter, request *http.Request) {
 		os.RemoveAll(writePath)
 		os.RemoveAll(PkgDirPath)
 
+	} else {
+		writer.WriteHeader(400)
+		writer.Write([]byte("There is missing field(s) in the PackageData/AuthenticationToken or it is formed improperly, or the AuthenticationToken is invalid."))
 	}
 }
 
@@ -261,6 +263,7 @@ func ResetRegistry(writer http.ResponseWriter, request *http.Request) {
 
 	if request.Form["X-Authorization"] != nil {
 		given_xAuth = request.Form["X-Authorization"][0]
+		// given_xAuth = chi.URLParam(request, "auth")
 	} else {
 		given_xAuth = request.Header["X-Authorization"][0]
 	}
@@ -268,10 +271,17 @@ func ResetRegistry(writer http.ResponseWriter, request *http.Request) {
 	if given_xAuth == auth_success {
 
 		cmd := exec.Command("python3", "src/gcp_calc/deleteBucket.py", "tomr")
-		_, err := cmd.Output()
+		// err := cmd.Run()
 
+		// if err != nil {
+		// 	fmt.Print("Error here\n")
+		// 	println(err.Error())
+		// 	return
+		// }
+
+		output, err := cmd.CombinedOutput()
 		if err != nil {
-			println(err.Error())
+			fmt.Println(fmt.Sprint(err) + ": " + string(output))
 			return
 		}
 
@@ -377,7 +387,7 @@ func UpdatePackage(writer http.ResponseWriter, request *http.Request) {
 			return
 		}
 
-		//
+		db.DeleteFile(bucket_name, id)
 
 		var recieve_package Package
 		body, _ := io.ReadAll(request.Body)
@@ -674,6 +684,8 @@ func GetPackageByName(writer http.ResponseWriter, request *http.Request) {
 
 	name := chi.URLParam(request, "name")
 
+	// fmt.Print(given_xAuth)
+
 	if given_xAuth == auth_success {
 
 		results := utils.History(name, 0)
@@ -690,7 +702,7 @@ func GetPackageByName(writer http.ResponseWriter, request *http.Request) {
 			writer.Write([]byte(string(i)))
 		}
 
-	} else if given_xAuth == "" || name == "" {
+	} else if given_xAuth == "" || name == "" || given_xAuth != auth_success {
 		writer.WriteHeader(400)
 		writer.Write([]byte("There is missing field(s) in the PackageID/AuthenticationToken or it is formed improperly, or the AuthenticationToken is invalid."))
 	} else {

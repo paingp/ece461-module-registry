@@ -5,6 +5,7 @@ import (
 	"log"
 	"net/http"
 	"os"
+
 	"tomr/src/handlers"
 
 	"github.com/go-chi/chi/v5"
@@ -16,7 +17,7 @@ func main() {
 	router.Put("/authenticate", handlers.CreateAuthToken)
 
 	router.Get("/", func(writer http.ResponseWriter, request *http.Request) {
-		_, err := writer.Write([]byte("ece461g17-module-registry"))
+		_, err := writer.Write([]byte("Node Trustworthy Open-source Module Registry -- ECE 461, Team 17"))
 		if err != nil {
 			log.Println(err)
 		}
@@ -35,14 +36,15 @@ func main() {
 
 	router.Post("/package/byRegEx", handlers.GetPackageByRegEx)
 
-	router.Post("/`packages`", handlers.ListPackages)
+	router.Post("/packages", handlers.ListPackages)
 
 	router.Delete("/reset", handlers.ResetRegistry)
 
 	port := os.Getenv("PORT")
 	if port == "" {
-		//port = "8080"
-		port = "3000"
+		port = "8080"
+		//port = "3000"
+
 	}
 	fmt.Printf("Server started on PORT %s\n", port)
 	log.Fatal(http.ListenAndServe(":"+port, router))

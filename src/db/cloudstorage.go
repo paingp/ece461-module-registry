@@ -52,7 +52,7 @@ func DoesPackageExist(name string) bool {
 	}
 	defer client.Close()
 
-	ctx, cancel := context.WithTimeout(ctx, time.Second*10)
+	ctx, cancel := context.WithTimeout(ctx, time.Second*30)
 	defer cancel()
 
 	it := client.Bucket(BucketName).Objects(ctx, nil)
