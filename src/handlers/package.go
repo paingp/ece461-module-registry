@@ -3,14 +3,14 @@ package handlers
 import (
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"os"
 	"os/exec"
 	"path"
 	"regexp"
-	"time"
 	"strconv"
+	"time"
 
 	"tomr/models"
 	"tomr/src/db"
@@ -20,10 +20,10 @@ import (
 	"github.com/go-chi/chi/v5"
 )
 
-const pkgDirPath = "src/metrics/temp" // temp directory to store packages
+const PkgDirPath = "src/metrics/temp" // temp directory to store packages
 // const auth_success = "ABC"
 const auth_success = "bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJuYW1lIjoiZWNlMzA4NjFkZWZhdWx0YWRtaW51c2VyIiwicGFzc3dvcmQiOiJjb3JyZWN0aG9yc2ViYXR0ZXJ5c3RhcGxlMTIzKCFfXytAKiooQeKAmeKAnWA7RFJPUCBUQUJMRSBwYWNrYWdlczsifQ.TSGs6VJMFx5NV2RoHrhEP_FK8nv4Wlzc4gQls2JYPC4"
-const bucket_name = "tomr"
+const BucketName = "tomr"
 
 type metadata struct {
 	Name    string `json:"Name"`
@@ -50,12 +50,14 @@ func CreatePackage(writer http.ResponseWriter, request *http.Request) {
 
 	if given_xAuth == auth_success {
 		var data models.PackageData
-		body, _ := ioutil.ReadAll(request.Body)
+		body, _ := io.ReadAll(request.Body)
 		json.Unmarshal(body, &data)
 
 		content := data.Content
 		url := data.URL
 		jsprogram := data.JSProgram
+		fmt.Printf("Url: %s\n", url)
+		fmt.Printf("JSProgram: %s\n", jsprogram)
 
 		packageData := models.PackageData{Content: content, URL: url, JSProgram: jsprogram}
 		pkgDir := ""
@@ -67,26 +69,26 @@ func CreatePackage(writer http.ResponseWriter, request *http.Request) {
 		if (packageData.Content != "") && (packageData.URL != "") {
 			writer.WriteHeader(400)
 			writer.Write([]byte("There is missing field(s) in the PackageData/AuthenticationToken or it is formed improperly, or the AuthenticationToken is invalid."))
-			os.RemoveAll(pkgDirPath)
+			os.RemoveAll(PkgDirPath)
 			return
 
 		} else if packageData.Content != "" { // Only Content is set
 			// Decode base64 string into zip
-			pkgDir = path.Join(pkgDirPath, "package.zip")
+			pkgDir = path.Join(PkgDirPath, "package.zip")
 			utils.Base64ToZip(packageData.Content, pkgDir)
 			err := utils.GetMetadataFromZip(pkgDir, &metadata, &readMe)
 			if err != nil {
 				writer.WriteHeader(400)
 				writer.Write([]byte("Error no metadata in zip"))
 				// log.Fatalf("Failed to get metadata from zip file\n")
-				os.RemoveAll(pkgDirPath)
+				os.RemoveAll(PkgDirPath)
 				return
 			}
 			metadata.ID = metadata.Name + "(" + metadata.Version + ")"
 			if db.DoesPackageExist(metadata.ID) {
 				writer.WriteHeader(409)
 				writer.Write([]byte("Package exists already."))
-				os.RemoveAll(pkgDirPath)
+				os.RemoveAll(PkgDirPath)
 				return
 			}
 
@@ -95,7 +97,7 @@ func CreatePackage(writer http.ResponseWriter, request *http.Request) {
 				writer.WriteHeader(424)
 				writer.Write([]byte("Package is not uploaded due to the disqualified rating."))
 				// log.Fatalf("Failed to get metadata from zip file\n")
-				os.RemoveAll(pkgDirPath)
+				os.RemoveAll(PkgDirPath)
 				return
 			}
 
@@ -104,14 +106,14 @@ func CreatePackage(writer http.ResponseWriter, request *http.Request) {
 
 		} else { // Only URL is set
 			gitUrl := utils.GetGithubUrl(url)
-			pkgDir = utils.CloneRepo(gitUrl, pkgDirPath)
+			pkgDir = utils.CloneRepo(gitUrl, PkgDirPath)
 			err := metrics.RatePackage(gitUrl, pkgDir, &rating, "", nil)
 			if err != nil {
 				fmt.Print(err)
 				writer.WriteHeader(424)
 				writer.Write([]byte("Package is not uploaded due to the disqualified rating."))
 				// log.Fatalf("Failed to get metadata from zip file\n")
-				os.RemoveAll(pkgDirPath)
+				os.RemoveAll(PkgDirPath)
 				return
 			}
 			// Check if package meets criteria for ingestion
@@ -120,7 +122,7 @@ func CreatePackage(writer http.ResponseWriter, request *http.Request) {
 			if db.DoesPackageExist(metadata.ID) {
 				writer.WriteHeader(409)
 				writer.Write([]byte("Package exists already."))
-				os.RemoveAll(pkgDirPath)
+				os.RemoveAll(PkgDirPath)
 				return
 			}
 
@@ -129,7 +131,7 @@ func CreatePackage(writer http.ResponseWriter, request *http.Request) {
 				writer.WriteHeader(400)
 				writer.Write([]byte("Unable to zip directory"))
 				// log.Fatalf("Failed to get metadata from zip file\n")
-				os.RemoveAll(pkgDirPath)
+				os.RemoveAll(PkgDirPath)
 				return
 			}
 			pkgDir += ".zip"
@@ -140,29 +142,29 @@ func CreatePackage(writer http.ResponseWriter, request *http.Request) {
 
 		pkg := models.PackageObject{Metadata: &metadata, Data: &packageData, Rating: &rating}
 
-		base64, error1 := utils.ZipToBase64(pkgDir)
+		base64, err := utils.ZipToBase64(pkgDir)
 
-		if error1 != nil {
-			os.RemoveAll(pkgDirPath)
+		if err != nil {
+			os.RemoveAll(PkgDirPath)
 			fmt.Print("could not convert to base64")
 			return
 		}
 
 		writePath := "src/db/upload.txt"
-		fileWriter, err2 := os.Create(writePath)
+		fileWriter, err := os.Create(writePath)
 		fileWriter.WriteString(base64)
 
-		if err2 != nil {
+		if err != nil {
 			os.RemoveAll(writePath)
-			os.RemoveAll(pkgDirPath)
-			fmt.Print("Failed to write base64 encoding : ", err2)
+			os.RemoveAll(PkgDirPath)
+			fmt.Print("Failed to write base64 encoding : ", err)
 			return
 		}
 
 		return_json, err := db.StorePackage(pkg, writePath)
 		if err != nil {
 			os.RemoveAll(writePath)
-			os.RemoveAll(pkgDirPath)
+			os.RemoveAll(PkgDirPath)
 			fmt.Print("did not get return json")
 		}
 
@@ -175,7 +177,7 @@ func CreatePackage(writer http.ResponseWriter, request *http.Request) {
 		writer.Write([]byte(string(return_json)))
 
 		os.RemoveAll(writePath)
-		os.RemoveAll(pkgDirPath)
+		os.RemoveAll(PkgDirPath)
 
 	}
 }
@@ -197,7 +199,7 @@ func GetPackageByRegEx(writer http.ResponseWriter, request *http.Request) {
 			Regex string `json:"Regex"`
 		}
 
-		body, _ := ioutil.ReadAll(request.Body)
+		body, _ := io.ReadAll(request.Body)
 
 		var regex regex_body
 		json.Unmarshal(body, &regex)
@@ -323,7 +325,7 @@ func RetrievePackage(writer http.ResponseWriter, request *http.Request) {
 		// version rs[2]
 		// name rs[1]
 
-		attrs, _ := db.GetMetadata(bucket_name, id)
+		attrs, _ := db.GetMetadata(BucketName, id)
 		metadata := attrs.Metadata
 
 		var return_package Package
@@ -366,6 +368,7 @@ func UpdatePackage(writer http.ResponseWriter, request *http.Request) {
 	}
 
 	id = chi.URLParam(request, "id")
+	fmt.Printf("id: %s\n", id)
 
 	if given_xAuth == auth_success {
 
@@ -375,19 +378,44 @@ func UpdatePackage(writer http.ResponseWriter, request *http.Request) {
 			return
 		}
 
-		db.DeleteFile(bucket_name, id)
+		//
 
 		var recieve_package Package
-		body, _ := ioutil.ReadAll(request.Body)
+		body, _ := io.ReadAll(request.Body)
 		json.Unmarshal(body, &recieve_package)
 
 		content := recieve_package.Data.Content
-		url := recieve_package.Data.URL
-		jsprogram := recieve_package.Data.JSProgram
+		//url := recieve_package.Data.URL
+		//jsprogram := recieve_package.Data.JSProgram
 
-		fmt.Print(content)
-		fmt.Print(url)
-		fmt.Print(jsprogram)
+		attrs, err := db.GetMetadata(BucketName, id)
+		if err != nil {
+			fmt.Println(err)
+		}
+		objMetadata := attrs.Metadata
+
+		writePath := "src/db/upload.txt"
+		fileWriter, err := os.Create(writePath)
+		fileWriter.WriteString(content)
+
+		if err != nil {
+			os.RemoveAll(writePath)
+			fmt.Errorf("Failed to write base64 encoding : %s\n", err)
+			return
+		}
+
+		db.DeleteObject(BucketName, id)
+
+		err = db.UploadPackage(writePath, id)
+		if err != nil {
+			fmt.Errorf("Failed to upload package to cloud storage\n%v", err)
+		}
+
+		db.SetMetadata(objMetadata, id)
+
+		//fmt.Println("Update sucess")
+		writer.WriteHeader(200)
+		writer.Write([]byte("Version is updated"))
 
 	} else {
 		writer.WriteHeader(400)
@@ -413,7 +441,7 @@ func DeletePackage(writer http.ResponseWriter, request *http.Request) {
 
 	if given_xAuth == auth_success {
 
-		db.DeleteFile(bucket_name, id)
+		db.DeleteObject(BucketName, id)
 
 		writer.WriteHeader(200)
 		writer.Write([]byte("Version is deleted."))
@@ -521,7 +549,7 @@ func RatePackage(writer http.ResponseWriter, request *http.Request) {
 			Correctness          string
 		}
 
-		attrs, _ := db.GetMetadata(bucket_name, id)
+		attrs, _ := db.GetMetadata(BucketName, id)
 		metadata := attrs.Metadata
 
 		var package_ratings ratings
@@ -548,35 +576,35 @@ func RatePackage(writer http.ResponseWriter, request *http.Request) {
 		}
 
 		package_ratings.ResponsiveMaintainer = metadata["ResponsiveMaintainer"]
-		tempFloat, err = strconv.ParseFloat(package_ratings.ResponsiveMaintainer , 32)
+		tempFloat, err = strconv.ParseFloat(package_ratings.ResponsiveMaintainer, 32)
 		if err != nil || tempFloat < 0 || tempFloat > 1 {
 			writer.WriteHeader(500)
 			writer.Write([]byte("The package rating system choked on at least one of the metrics."))
 		}
 
 		package_ratings.LicenseScore = metadata["LicenseScore"]
-		tempFloat, err = strconv.ParseFloat(package_ratings.LicenseScore , 32)
+		tempFloat, err = strconv.ParseFloat(package_ratings.LicenseScore, 32)
 		if err != nil || tempFloat < 0 || tempFloat > 1 {
 			writer.WriteHeader(500)
 			writer.Write([]byte("The package rating system choked on at least one of the metrics."))
 		}
 
 		package_ratings.RampUp = metadata["RampUp"]
-		tempFloat, err = strconv.ParseFloat(package_ratings.RampUp , 32)
+		tempFloat, err = strconv.ParseFloat(package_ratings.RampUp, 32)
 		if err != nil || tempFloat < 0 || tempFloat > 1 {
 			writer.WriteHeader(500)
 			writer.Write([]byte("The package rating system choked on at least one of the metrics."))
 		}
 
 		package_ratings.BusFactor = metadata["BusFactor"]
-		tempFloat, err = strconv.ParseFloat(package_ratings.BusFactor , 32)
+		tempFloat, err = strconv.ParseFloat(package_ratings.BusFactor, 32)
 		if err != nil || tempFloat < 0 || tempFloat > 1 {
 			writer.WriteHeader(500)
 			writer.Write([]byte("The package rating system choked on at least one of the metrics."))
 		}
 
 		package_ratings.Correctness = metadata["Correctness"]
-		tempFloat, err = strconv.ParseFloat(package_ratings.Correctness , 32)
+		tempFloat, err = strconv.ParseFloat(package_ratings.Correctness, 32)
 		if err != nil || tempFloat < 0 || tempFloat > 1 {
 			writer.WriteHeader(500)
 			writer.Write([]byte("The package rating system choked on at least one of the metrics."))
@@ -610,7 +638,7 @@ func CreateAuthToken(writer http.ResponseWriter, request *http.Request) {
 	}
 
 	var auth_struct Auth
-	body, _ := ioutil.ReadAll(request.Body)
+	body, _ := io.ReadAll(request.Body)
 	// fmt.Print(body)
 	json.Unmarshal([]byte(body), &auth_struct)
 

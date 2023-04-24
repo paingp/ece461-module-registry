@@ -65,14 +65,14 @@ func DoesPackageExist(name string) bool {
 			return false
 		}
 		if attrs.Name == name {
-			fmt.Print("returning true")
+			//fmt.Print("returning true")
 			return true
 		}
 	}
 	return false
 }
 
-func DeleteFile(bucket, object string) error {
+func DeleteObject(bucket, object string) error {
 	// bucket := "bucket-name"
 	// object := "object-name"
 	ctx := context.Background()
