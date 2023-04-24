@@ -368,7 +368,6 @@ func UpdatePackage(writer http.ResponseWriter, request *http.Request) {
 	}
 
 	id = chi.URLParam(request, "id")
-	fmt.Printf("id: %s\n", id)
 
 	if given_xAuth == auth_success {
 
@@ -400,7 +399,7 @@ func UpdatePackage(writer http.ResponseWriter, request *http.Request) {
 
 		if err != nil {
 			os.RemoveAll(writePath)
-			fmt.Errorf("Failed to write base64 encoding : %s\n", err)
+			fmt.Printf("Failed to write base64 encoding : %s\n", err)
 			return
 		}
 
@@ -408,12 +407,11 @@ func UpdatePackage(writer http.ResponseWriter, request *http.Request) {
 
 		err = db.UploadPackage(writePath, id)
 		if err != nil {
-			fmt.Errorf("Failed to upload package to cloud storage\n%v", err)
+			fmt.Printf("Failed to upload package to cloud storage\n%v", err)
 		}
 
 		db.SetMetadata(objMetadata, id)
 
-		//fmt.Println("Update sucess")
 		writer.WriteHeader(200)
 		writer.Write([]byte("Version is updated"))
 
