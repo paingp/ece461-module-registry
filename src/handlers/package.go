@@ -177,6 +177,9 @@ func CreatePackage(writer http.ResponseWriter, request *http.Request) {
 		os.RemoveAll(writePath)
 		os.RemoveAll(pkgDirPath)
 
+	} else {
+		writer.WriteHeader(400)
+		writer.Write([]byte("There is missing field(s) in the PackageData/AuthenticationToken or it is formed improperly, or the AuthenticationToken is invalid."))
 	}
 }
 
@@ -259,6 +262,7 @@ func ResetRegistry(writer http.ResponseWriter, request *http.Request) {
 
 	if request.Form["X-Authorization"] != nil {
 		given_xAuth = request.Form["X-Authorization"][0]
+		// given_xAuth = chi.URLParam(request, "auth")
 	} else {
 		given_xAuth = request.Header["X-Authorization"][0]
 	}
@@ -266,10 +270,17 @@ func ResetRegistry(writer http.ResponseWriter, request *http.Request) {
 	if given_xAuth == auth_success {
 
 		cmd := exec.Command("python3", "src/gcp_calc/deleteBucket.py", "tomr")
-		_, err := cmd.Output()
+		// err := cmd.Run()
 
+		// if err != nil {
+		// 	fmt.Print("Error here\n")
+		// 	println(err.Error())
+		// 	return
+		// }
+		
+		output, err := cmd.CombinedOutput()
 		if err != nil {
-			println(err.Error())
+			fmt.Println(fmt.Sprint(err) + ": " + string(output))
 			return
 		}
 
@@ -648,6 +659,8 @@ func GetPackageByName(writer http.ResponseWriter, request *http.Request) {
 
 	name := chi.URLParam(request, "name")
 
+	// fmt.Print(given_xAuth)
+
 	if given_xAuth == auth_success {
 
 		results := utils.History(name, 0)
@@ -664,10 +677,10 @@ func GetPackageByName(writer http.ResponseWriter, request *http.Request) {
 			writer.Write([]byte(string(i)))
 		}
 
-	} else if given_xAuth == "" || name == "" {
+	} else if given_xAuth == "" || name == ""  || given_xAuth != auth_success{
 		writer.WriteHeader(400)
 		writer.Write([]byte("There is missing field(s) in the PackageID/AuthenticationToken or it is formed improperly, or the AuthenticationToken is invalid."))
-	} else {
+	}  else {
 		writer.Write([]byte("{\n  \"code\": 0,\n  \"message\": \"Other Error\"\n}"))
 	}
 }

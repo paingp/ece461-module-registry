@@ -47,6 +47,9 @@ def delete_bucket(bucket_name):
     print(f"Bucket {bucket.name} deleted")
 
 if __name__ == "__main__":
+
+    print("ive been here")
+
     bucket_name = sys.argv[1]
     blobs = list_blobs(bucket_name)
     delete_objects(blobs)

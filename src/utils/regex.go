@@ -187,7 +187,7 @@ func History(name string, delete int, args ...string) [][]byte {
 			mod.Metadata.Version = version
 			mod.Metadata.Name = rs[1]
 			mod.Metadata.ID = strings.ToLower(rs[1])
-			mod.Date = "blank for now" // Default for now
+			mod.Date = "2023-03-22T23:06:25.000Z" // Default for now
 			mod.Action = "CREATE"      // Default for now
 			b, err := json.MarshalIndent(mod, "", "  ")
 
