@@ -52,7 +52,7 @@ func DoesPackageExist(name string) bool {
 	}
 	defer client.Close()
 
-	ctx, cancel := context.WithTimeout(ctx, time.Second*10)
+	ctx, cancel := context.WithTimeout(ctx, time.Second*30)
 	defer cancel()
 
 	it := client.Bucket(BucketName).Objects(ctx, nil)
@@ -65,14 +65,14 @@ func DoesPackageExist(name string) bool {
 			return false
 		}
 		if attrs.Name == name {
-			fmt.Print("returning true")
+			//fmt.Print("returning true")
 			return true
 		}
 	}
 	return false
 }
 
-func DeleteFile(bucket, object string) error {
+func DeleteObject(bucket, object string) error {
 	// bucket := "bucket-name"
 	// object := "object-name"
 	ctx := context.Background()

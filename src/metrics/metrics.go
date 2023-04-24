@@ -11,25 +11,22 @@ import (
 	"math"
 	"net/http"
 	"os"
+	"os/exec"
 	"path"
 	"path/filepath"
 	"regexp"
-
-	//"os"
-	"os/exec"
 	"strconv"
 	"strings"
 	"time"
+
 	"tomr/models"
 	"tomr/src/utils"
-
-	// "tomr/src/utils"
 
 	"github.com/shurcooL/githubv4"
 )
 
 // var compatibleLicenses = [...]string{"MIT", "LGPLv2.1", "Expat", "X11", "MPL-2.0", "Mozilla Public", "Artistic License 2", "GPLv2", "GPLv3"}
-const RegexLicense = `mit|lgplv2.1|expat|x11|mpl-2.0|mozilla public|artistic license 2|gplv2|gplv3` //`MIT|LGPLv2.1|Expat|X11|MPL-2.0|Mozilla Public|Artistic License 2|GPLv2|GPLv3`
+const RegexLicense = `(?i)MIT|LGPLv2.1|Expat|X11|MPL-2.0|Mozilla Public|Artistic License 2|GPLv2|GPLv3`
 
 var ReadMePath = ""
 
@@ -164,7 +161,7 @@ func getRampUp(jsonRes map[string]interface{}, client *http.Client) float64 {
 		discussions = .45
 	}
 
-	fmt.Print("sum" , wiki + pages + discussions)
+	//fmt.Print("sum", wiki+pages+discussions)
 
 	var commentsScore float32
 	totalComments := getTotalCommentsGraphQL(jsonRes, client)
@@ -182,7 +179,6 @@ func getRampUp(jsonRes map[string]interface{}, client *http.Client) float64 {
 		commentsScore = 0.45
 	}
 
-	
 	// Returning weighted sum of aspects
 	return math.Min(float64(wiki+pages+discussions+float64(commentsScore)), 1.0)
 }
@@ -254,7 +250,7 @@ func getResponsiveMaintainer(jsonRes map[string]interface{}) float64 {
 	}
 
 	// Returning weighted sum of aspects
-	totalValue := math.Min(float64(private + updatedLast + float32(issuesScore) + float32(archivedScore)) , 1.0)
+	totalValue := math.Min(float64(private+updatedLast+float32(issuesScore)+float32(archivedScore)), 1.0)
 	return totalValue
 }
 
@@ -264,26 +260,25 @@ func checkLicense(readMe []byte) float64 {
 	selected := ""
 
 	// fmt.Print("fist" , firstIdx, "last", lastIdx)
-	readMe = bytes.ToLower(readMe)
 	firstIdx := bytes.Index(readMe, []byte("license"))
 
 	if firstIdx == -1 {
-		return 0.0
+		return 0
 	}
 	firstIdx -= 15
 
 	lastIdx := len(readMe) - 1
 
 	if (lastIdx - firstIdx) >= 200 {
-		// fmt.Print("here99")
 		selected = string((readMe)[firstIdx : firstIdx+200])
+		//fmt.Printf(string(selected))
 	} else {
-		// fmt.Print("here00")
 		selected = string((readMe)[firstIdx:lastIdx])
+		//fmt.Printf(string(selected))
 	}
 	matched, err := regexp.MatchString(RegexLicense, selected)
 	if err != nil {
-		log.Fatal(err)
+		fmt.Println("Error matching regex in checkLicense")
 		return licenseCompatibility
 	}
 	if matched {
@@ -293,7 +288,7 @@ func checkLicense(readMe []byte) float64 {
 }
 
 func checkLicenseFromReadMe(directory string) float64 {
-	fmt.Print(directory)
+	fmt.Printf("checkLicenseFromReadMe(%s)", directory)
 	err := filepath.WalkDir(directory, func(path string, d fs.DirEntry, err error) error {
 		maxDepth := 5
 		if err != nil {
@@ -312,61 +307,62 @@ func checkLicenseFromReadMe(directory string) float64 {
 		}
 		return nil
 	})
-	// fmt.Print("here11")
 	if err != nil {
 		fmt.Print(err)
 		return 0.0
 	}
-	// fmt.Print("here12")
-	fmt.Print(ReadMePath)
+	//fmt.Print(ReadMePath)
 	readMe, err := os.ReadFile(ReadMePath)
 	if err != nil {
 		log.Fatal(err)
 		return 0.0
 	}
-	// fmt.Print("here13")
 
 	return checkLicense(readMe)
 }
 
-func getLicenseScore(license string, pkgDir string, readMe []byte) float64 {
+func getLicenseScore(license string, pkgDir string, readMe *[]byte) float64 {
+	fmt.Printf("getLicenseScore(%s, %s, nil = %t)\n", license, pkgDir, readMe == nil)
 	licenseCompatibility := 0.0
 	if license != "" {
 		matched, err := regexp.MatchString(RegexLicense, license)
 		if err != nil {
-			fmt.Print(err)
+			fmt.Println("Error matchine regex in getLicenseScore")
 		} else if matched {
 			licenseCompatibility = 1.0
 		}
 	} else if readMe != nil {
-		licenseCompatibility = checkLicense(readMe)
+		licenseCompatibility = checkLicense(*readMe)
 	} else {
 		// fmt.Print("here 1")
-		pkgJsonFile, _ := os.Open(path.Join(pkgDir, "package.json"))
+		pkgJsonFile, err := os.Open(path.Join(pkgDir, "package.json"))
+		if err != nil {
+			fmt.Printf("Can't find package.json in %s\n", pkgDir)
+			return 0
+		}
 		// fmt.Print("here 2")
 		dec := json.NewDecoder(pkgJsonFile)
 		// fmt.Print("here 3")
-		var license string
+		type elem struct {
+			License string `json:"license"`
+		}
+		var jsonElem elem
 		for {
-			if err := dec.Decode(&license); err == io.EOF {
+			if err := dec.Decode(&jsonElem); err == io.EOF {
 				break
 			}
 		}
-		// fmt.Print("here 4")
 		pkgJsonFile.Close()
-		// fmt.Print("here 5")
-		matched, _ := regexp.MatchString(RegexLicense, license)
-		// fmt.Print("here 6")
+		//fmt.Println("license: ", jsonElem.License)
+		matched, _ := regexp.MatchString(RegexLicense, jsonElem.License)
 		if matched {
 			licenseCompatibility = 1.0
 		}
 		if licenseCompatibility == 0 {
-			// fmt.Print("here 7")
 			licenseCompatibility = checkLicenseFromReadMe(pkgDir)
-			// fmt.Print("here8")
 		}
 	}
-	fmt.Print(licenseCompatibility)
+	//fmt.Print(licenseCompatibility)
 	return licenseCompatibility
 }
 
@@ -470,7 +466,7 @@ func getGoodEngineeringProcess(url string, client *http.Client, pkgDir string) f
 		return -1
 	}
 
-	fmt.Println(pkgDir)
+	//fmt.Println(pkgDir)
 
 	total := getTotalLines(pkgDir)
 

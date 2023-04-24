@@ -33,37 +33,36 @@ func RatePackage(url string, pkgDirectory string, rating *models.PackageRating, 
 	(*rating).BusFactor = getBusFactor(jsonData)
 	if ingestion {
 		if (*rating).BusFactor < 0.5 {
-			return fmt.Errorf("score too low for BusFactor to meet criteria for ingestion")
+			return fmt.Errorf("BusFactor score of %f doesn't meet criteria for ingestion", (*rating).BusFactor)
 		}
 	}
+
 	(*rating).Correctness = getCorrectness(jsonData)
+
 	if ingestion {
 		if (*rating).Correctness < 0.5 {
-			return fmt.Errorf("score too low for correctness to meet criteria for ingestion")
+			return fmt.Errorf("Correctness score of %f  doesn't meet criteria for ingestion", (*rating).Correctness)
 		}
 	}
+
 	(*rating).RampUp = getRampUp(jsonData, httpClient)
-	// fmt.Print("Ramp up Score", (*rating).RampUp)
 	if ingestion {
 		if (*rating).RampUp < 0.5 {
-			return fmt.Errorf("score too low for rampup to meet criteria for ingestion")
+			return fmt.Errorf("RampUp score of %f doesn't meet for ingestion", (*rating).RampUp)
 		}
 	}
+
 	(*rating).ResponsiveMaintainer = getResponsiveMaintainer(jsonData)
 	if ingestion {
 		if (*rating).ResponsiveMaintainer < 0.5 {
-			return fmt.Errorf("score too low for responsive maintainer to meet criteria for ingestion")
+			return fmt.Errorf("ResponsiveMaintainer score of %f doesn't meet criteria for ingestion", (*rating).ResponsiveMaintainer)
 		}
 	}
-	if readMe == nil {
-		(*rating).LicenseScore = getLicenseScore(license, pkgDirectory, nil)
-	} else {
-		(*rating).LicenseScore = getLicenseScore(license, pkgDirectory, *readMe)
-	}
 
+	(*rating).LicenseScore = getLicenseScore(license, pkgDirectory, readMe)
 	if ingestion {
 		if (*rating).LicenseScore < 0.5 {
-			return fmt.Errorf("score too low for license to meet criteria for ingestion")
+			return fmt.Errorf("License does not meet criteria for ingestion (must be ompatible with LGPLv2.1)")
 		}
 	}
 
@@ -73,7 +72,7 @@ func RatePackage(url string, pkgDirectory string, rating *models.PackageRating, 
 	(*rating).NetScore = getNetScore(*rating)
 
 	//os.RemoveAll("src/metrics/temp")
-	utils.PrintRating((*rating))
+	//utils.PrintRating((*rating))
 
 	return err
 }
