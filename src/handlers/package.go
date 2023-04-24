@@ -21,7 +21,8 @@ import (
 )
 
 const pkgDirPath = "src/metrics/temp" // temp directory to store packages
-const auth_success = "ABC"
+// const auth_success = "ABC"
+const auth_success = "bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJuYW1lIjoiZWNlMzA4NjFkZWZhdWx0YWRtaW51c2VyIiwicGFzc3dvcmQiOiJjb3JyZWN0aG9yc2ViYXR0ZXJ5c3RhcGxlMTIzKCFfXytAKiooQeKAmeKAnWA7RFJPUCBUQUJMRSBwYWNrYWdlczsifQ.TSGs6VJMFx5NV2RoHrhEP_FK8nv4Wlzc4gQls2JYPC4"
 const bucket_name = "tomr"
 
 type metadata struct {
@@ -284,8 +285,6 @@ func ResetRegistry(writer http.ResponseWriter, request *http.Request) {
 func RetrievePackage(writer http.ResponseWriter, request *http.Request) {
 
 	request.ParseForm()
-
-	fmt.Print("why\n\n\n\n")
 
 	var given_xAuth string
 
@@ -597,22 +596,25 @@ func RatePackage(writer http.ResponseWriter, request *http.Request) {
 func CreateAuthToken(writer http.ResponseWriter, request *http.Request) {
 
 	type User_struct struct {
-		Name    string `json:"Name"`
-		IsAdmin bool   `json:"IsAdmin"`
+		Name    string `json:"name"`
+		IsAdmin bool   `json:"isAdmin"`
 	}
 
 	type Secret_struct struct {
-		Password string `json:"Password"`
+		Password string `json:"password"`
 	}
 
 	type Auth struct {
-		User   User_struct   `json:"User"`
-		Secret Secret_struct `json:"Secret"`
+		User   User_struct   `json:"user"`
+		Secret Secret_struct `json:"secret"`
 	}
 
 	var auth_struct Auth
 	body, _ := ioutil.ReadAll(request.Body)
-	json.Unmarshal(body, &auth_struct)
+	// fmt.Print(body)
+	json.Unmarshal([]byte(body), &auth_struct)
+
+	// fmt.Print(auth_struct.Secret.Password)
 
 	if auth_struct == (Auth{}) || auth_struct.User == (User_struct{}) || auth_struct.Secret == (Secret_struct{}) {
 		writer.WriteHeader(400)
@@ -629,7 +631,7 @@ func CreateAuthToken(writer http.ResponseWriter, request *http.Request) {
 	}
 
 	writer.WriteHeader(200)
-	writer.Write([]byte(auth_token))
+	writer.Write([]byte("\"bearer " + auth_token + "\""))
 }
 
 func GetPackageByName(writer http.ResponseWriter, request *http.Request) {
