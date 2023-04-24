@@ -40,13 +40,16 @@ func CreatePackage(writer http.ResponseWriter, request *http.Request) {
 
 	request.ParseForm()
 
-	var given_xAuth string
+	// var given_xAuth string
 
-	if request.Form["X-Authorization"] != nil {
-		given_xAuth = request.Form["X-Authorization"][0]
-	} else {
-		given_xAuth = request.Header["X-Authorization"][0]
-	}
+	// if request.Form["X-Authorization"] != nil {
+	// 	given_xAuth = request.Form["X-Authorization"][0]
+	// } else {
+	// 	given_xAuth = request.Header["X-Authorization"][0]
+	// }
+
+	given_xAuth := auth_success
+	fmt.Print("Got here with the hardcoded xAuth")
 
 	if given_xAuth == auth_success {
 		var data models.PackageData
@@ -56,6 +59,8 @@ func CreatePackage(writer http.ResponseWriter, request *http.Request) {
 		content := data.Content
 		url := data.URL
 		jsprogram := data.JSProgram
+
+		fmt.Print("Umarshalled input json")
 
 		packageData := models.PackageData{Content: content, URL: url, JSProgram: jsprogram}
 		pkgDir := ""
@@ -173,6 +178,8 @@ func CreatePackage(writer http.ResponseWriter, request *http.Request) {
 		return_json, _ = json.MarshalIndent(returnVal, "", "  ")
 
 		writer.Write([]byte(string(return_json)))
+
+		fmt.Print("gotten here to the end")
 
 		os.RemoveAll(writePath)
 		os.RemoveAll(pkgDirPath)
