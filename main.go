@@ -36,14 +36,14 @@ func main() {
 
 	router.Post("/package/byRegEx", handlers.GetPackageByRegEx)
 
-	router.Post("/`packages`", handlers.ListPackages)
+	router.Post("/packages", handlers.ListPackages)
 
 	router.Delete("/reset", handlers.ResetRegistry)
 
 	port := os.Getenv("PORT")
 	if port == "" {
-		port = "8080"
-		// port = "3000"
+		// port = "8080"
+		port = "3000"
 	}
 	fmt.Printf("Server started on PORT %s\n", port)
 	log.Fatal(http.ListenAndServe(":"+port, router))
