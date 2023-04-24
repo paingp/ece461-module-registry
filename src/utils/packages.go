@@ -3,10 +3,12 @@ package utils
 import (
 	"context"
 	"fmt"
+
 	// "log"
 	// "path"
 	"regexp"
 	"strings"
+
 	// "tomr/models"
 	// "tomr/src/db"
 	// "tomr/src/metrics"
@@ -51,8 +53,6 @@ func Packages(version string, name string) [][]byte {
 		return nil
 	}
 	defer client.Close()
-
-	fmt.Print("are we here")
 
 	// Create a query
 	query := &storage.Query{

@@ -64,7 +64,7 @@ func Regex(regex_str string) []string {
 					matches = append(matches, obj.Name)
 				}
 			} else {
-				fmt.Printf("readme not found")
+				fmt.Printf("ReadMe not found")
 			}
 		}
 
