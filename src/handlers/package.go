@@ -120,6 +120,8 @@ func CreatePackage(writer http.ResponseWriter, request *http.Request) {
 				os.RemoveAll(PkgDirPath)
 				return
 			}
+
+			fmt.Print("here1")
 			// Check if package meets criteria for ingestion
 			utils.GetPackageMetadata(pkgDir, &metadata)
 
@@ -129,6 +131,8 @@ func CreatePackage(writer http.ResponseWriter, request *http.Request) {
 				os.RemoveAll(PkgDirPath)
 				return
 			}
+
+			fmt.Print("here2")
 
 			err = utils.ZipDirectory(pkgDir, pkgDir+".zip")
 			if err != nil {
@@ -143,6 +147,8 @@ func CreatePackage(writer http.ResponseWriter, request *http.Request) {
 			writer.WriteHeader(201)
 			writer.Write([]byte("Success. Check the ID in the returned metadata for the official ID.\n"))
 		}
+
+		fmt.Print("here3")
 
 		pkg := models.PackageObject{Metadata: &metadata, Data: &packageData, Rating: &rating}
 
@@ -171,6 +177,8 @@ func CreatePackage(writer http.ResponseWriter, request *http.Request) {
 			os.RemoveAll(PkgDirPath)
 			fmt.Print("did not get return json")
 		}
+
+		fmt.Print("here4")
 
 		var returnVal db.Return_storage
 		json.Unmarshal(return_json, &returnVal)
@@ -638,6 +646,8 @@ func RatePackage(writer http.ResponseWriter, request *http.Request) {
 
 func CreateAuthToken(writer http.ResponseWriter, request *http.Request) {
 
+
+
 	type User_struct struct {
 		Name    string `json:"name"`
 		IsAdmin bool   `json:"isAdmin"`
@@ -657,7 +667,9 @@ func CreateAuthToken(writer http.ResponseWriter, request *http.Request) {
 	// fmt.Print(body)
 	json.Unmarshal([]byte(body), &auth_struct)
 
-	// fmt.Print(auth_struct.Secret.Password)
+	fmt.Print(auth_struct.Secret.Password)
+	fmt.Print("\n")
+	fmt.Print("correcthorsebatterystaple123(!__+@**(A'\"`;DROP TABLE packages;")
 
 	if auth_struct == (Auth{}) || auth_struct.User == (User_struct{}) || auth_struct.Secret == (Secret_struct{}) {
 		writer.WriteHeader(400)
