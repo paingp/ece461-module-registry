@@ -1,36 +1,79 @@
 package metrics
 
 import (
+	"context"
+	"fmt"
+	"log"
+	"os"
 	"tomr/models"
 	"tomr/src/utils"
+
+	"golang.org/x/oauth2"
 )
 
-func RatePackage(url string, pkgDirectory string, license string, readMe *[]byte) error {
-	//gitEndpoint := utils.GetGithubEndpoint(url)
-	/*
-		src := oauth2.StaticTokenSource(
-			&oauth2.Token{AccessToken: os.Getenv("GITHUB_TOKEN")},
-		)
-		httpClient := oauth2.NewClient(context.Background(), src)
+func RatePackage(url string, pkgDirectory string, rating *models.PackageRating, license string, readMe *[]byte) error {
+	gitEndpoint := utils.GetGithubEndpoint(url)
 
-		jsonData, err := utils.GetDataFromGithub(httpClient, gitEndpoint)
-		if err != nil {
-			log.Fatalf("Failed to get data from GITHUB API rate package with URL: %s\n", url)
+	src := oauth2.StaticTokenSource(
+		&oauth2.Token{AccessToken: os.Getenv("GITHUB_TOKEN")},
+	)
+	httpClient := oauth2.NewClient(context.Background(), src)
+
+	jsonData, err := utils.GetDataFromGithub(httpClient, gitEndpoint)
+	if err != nil {
+		fmt.Print("here")
+		log.Fatalf("Failed to get data from GITHUB API rate package with URL: %s\n", url)
+	}
+
+	ingestion := false
+	if readMe == nil {
+		ingestion = true
+	}
+
+	(*rating).BusFactor = getBusFactor(jsonData)
+	if ingestion {
+		if (*rating).BusFactor < 0.5 {
+			return fmt.Errorf("BusFactor score of %f doesn't meet criteria for ingestion", (*rating).BusFactor)
 		}
-	*/
-	rating := models.PackageRating{}
-	/*
-		rating.BusFactor = getBusFactor(jsonData)
-		rating.Correctness = getCorrectness(jsonData)
-		rating.RampUp = getRampUp(jsonData, httpClient)
-		rating.ResponsiveMaintainer = getResponsiveMaintainer(jsonData)
-	*/
-	rating.LicenseScore = getLicenseScore(license, pkgDirectory, readMe)
-	//rating.GoodPinningPractice = getGoodPinningPractices(gitEndpoint, httpClient)
-	//rating.GoodEngineeringProcess = getGoodEngineeringProcess(gitEndpoint, httpClient, pkgDirectory)
+	}
+
+	(*rating).Correctness = getCorrectness(jsonData)
+
+	if ingestion {
+		if (*rating).Correctness < 0.5 {
+			return fmt.Errorf("Correctness score of %f  doesn't meet criteria for ingestion", (*rating).Correctness)
+		}
+	}
+
+	(*rating).RampUp = getRampUp(jsonData, httpClient)
+	if ingestion {
+		if (*rating).RampUp < 0.5 {
+			return fmt.Errorf("RampUp score of %f doesn't meet for ingestion", (*rating).RampUp)
+		}
+	}
+
+	(*rating).ResponsiveMaintainer = getResponsiveMaintainer(jsonData)
+	if ingestion {
+		if (*rating).ResponsiveMaintainer < 0.5 {
+			return fmt.Errorf("ResponsiveMaintainer score of %f doesn't meet criteria for ingestion", (*rating).ResponsiveMaintainer)
+		}
+	}
+
+	(*rating).LicenseScore = getLicenseScore(license, pkgDirectory, readMe)
+	if ingestion {
+		if (*rating).LicenseScore < 0.5 {
+			return fmt.Errorf("License does not meet criteria for ingestion (must be ompatible with LGPLv2.1)")
+		}
+	}
+
+	(*rating).GoodPinningPractice = getGoodPinningPractices(gitEndpoint, httpClient)
+	(*rating).GoodEngineeringProcess = getGoodEngineeringProcess(gitEndpoint, httpClient, pkgDirectory)
+	// (*rating).GoodEngineeringProcess = 0.0
+
+	(*rating).NetScore = getNetScore(*rating)
 
 	//os.RemoveAll("src/metrics/temp")
-	utils.PrintRating(rating)
+	//utils.PrintRating((*rating))
 
-	return nil
+	return err
 }

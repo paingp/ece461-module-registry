@@ -9,6 +9,7 @@ import (
 	"log"
 	"os"
 	"path"
+	"path/filepath"
 	"regexp"
 	"strings"
 	"tomr/models"
@@ -40,9 +41,56 @@ func Base64ToZip(b64string string, zipDirectory string) error {
 	return err
 }
 
-func GetPackageMetadata(directory string) models.PackageMetadata {
-	metadata := models.PackageMetadata{}
+func ZipDirectory(pathToZip string, destinationPath string) error {
+	destinationFile, err := os.Create(destinationPath)
+	if err != nil {
+		return err
+	}
+	myZip := zip.NewWriter(destinationFile)
+	err = filepath.Walk(pathToZip, func(filePath string, info os.FileInfo, err error) error {
+		if info.IsDir() {
+			return nil
+		}
+		if err != nil {
+			return err
+		}
+		relPath := strings.TrimPrefix(filePath, filepath.Dir(pathToZip))
+		zipFile, err := myZip.Create(relPath)
+		if err != nil {
+			return err
+		}
+		fsFile, err := os.Open(filePath)
+		if err != nil {
+			return err
+		}
+		_, err = io.Copy(zipFile, fsFile)
+		if err != nil {
+			return err
+		}
+		return nil
+	})
+	if err != nil {
+		return err
+	}
+	err = myZip.Close()
+	if err != nil {
+		return err
+	}
+	return nil
+}
 
+/*
+	func ZipDirectory(directory *string) error {
+		cmd := exec.Command("zip", "-r", *directory+".zip", *directory)
+		err := cmd.Run()
+		if err != nil {
+			return fmt.Errorf("Failed to zip directory: %s", *directory)
+		}
+		*directory += ".zip"
+		return err
+	}
+*/
+func GetPackageMetadata(directory string, metadata *models.PackageMetadata) error {
 	pkgJsonPath := path.Join(directory, "package.json")
 	file, err := os.Open(pkgJsonPath)
 	if err != nil {
@@ -50,51 +98,50 @@ func GetPackageMetadata(directory string) models.PackageMetadata {
 	}
 	dec := json.NewDecoder(file)
 	for {
-		if err := dec.Decode(&metadata); err == io.EOF {
+		if err := dec.Decode(metadata); err == io.EOF {
 			break
 		} else if err != nil {
-			log.Fatal(err)
+			return fmt.Errorf("Failed to decode JSON data from %s", pkgJsonPath)
 		}
 	}
 	file.Close()
 
-	metadata.ID = metadata.Name + "_" + metadata.Version
+	(*metadata).ID = (*metadata).Name + "(" + (*metadata).Version + ")"
 	//PrintMetadata(metadata)
-	return metadata
+	return err
 }
 
-func GetMetadataFromZip(zipFile string, readme *[]byte) (models.PackageMetadata, error) {
-	metadata := models.PackageMetadata{}
+func GetMetadataFromZip(zipFile string, metadata *models.PackageMetadata, readme *[]byte) error {
 	r, err := zip.OpenReader(zipFile)
 	if err != nil {
-		return metadata, err
+		return fmt.Errorf("Failed to read from %s", zipFile)
 	}
 	defer r.Close()
 	for _, f := range r.File {
 		if strings.HasSuffix(f.Name, "package.json") {
 			rc, err := f.Open()
 			if err != nil {
-				return metadata, err
+				return fmt.Errorf("Failed to read package.json")
 			}
 			dec := json.NewDecoder(rc)
 			for {
-				if err := dec.Decode(&metadata); err == io.EOF {
+				if err := dec.Decode(metadata); err == io.EOF {
 					break
 				} else if err != nil {
-					return metadata, err
+					return fmt.Errorf("Failed to parse JSON data")
 				}
 			}
 			rc.Close()
 		} else if strings.Count(f.Name, "/") == 1 {
 			matched, _ := regexp.MatchString(`(?i)readme`, f.Name)
 			if matched {
-				fmt.Printf("Matched: %s\n", f.Name)
+				//fmt.Printf("Matched: %s\n", f.Name)
 				*readme = GetReadMeFromZip(f)
 			}
 		}
 	}
 	//fmt.Printf(string(readme))
-	return metadata, err
+	return err
 }
 
 func GetReadMeFromZip(readme *zip.File) []byte {
@@ -113,27 +160,3 @@ func GetReadMeFromZip(readme *zip.File) []byte {
 	}
 	return bytes
 }
-
-/*
-func walk(path string, d fs.DirEntry, err error) error {
-	maxDepth := 1
-	if (err != nil) {
-		return err
-	}
-	if d.IsDir() && strings.Count(path, string(os.PathSeparator)) > maxDepth {
-		return fs.SkipDir
-	} else {
-		// Checking paths
-		matched, _ := regexp.MatchString(`(?i)readme`, path)
-		if (matched) {
-			// Checking matched path
-			check, _ := regexp.MatchString("(?i)guid", path)
-			if !check {
-				// Finding readme
-				readme = path
-			}
-		}
-	}
-	return nil
-}
-*/

@@ -21,12 +21,18 @@ type PackageMetadata struct {
 	License string `json:"License"`
 
 	RepoURL string `json:"Homepage"`
+
+	Date string `json:"Date"`
+
+	Action string `json:"Action"`
 }
 
 type PackageObject struct {
 	Metadata *PackageMetadata `json:"metadata"`
 
 	Data *PackageData `json:"data"`
+
+	Rating *PackageRating `json:"rating"`
 }
 
 // Package rating (cf. Project 1).  If the Project 1 that you inherited does not support one or more of the original properties, denote this with the value \"-1\".
