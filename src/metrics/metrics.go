@@ -420,6 +420,7 @@ func getTotalLines(directory string) int {
 
 	err := cmd.Run()
 	if err != nil {
+		log.Fatal(err)
 		log.Fatal("Failed to run cloc command")
 		return lines
 	} else if stderr.Len() != 0 {
