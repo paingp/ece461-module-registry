@@ -68,6 +68,8 @@ func CreatePackage(writer http.ResponseWriter, request *http.Request) {
 		//utils.PrintPackageData(packageData)
 		rating := models.PackageRating{}
 		var readMe []byte
+
+		fmt.Print("is it getting here?")
 		// Return Error 400 if both Content and URL are set
 		if (packageData.Content != "") && (packageData.URL != "") {
 			writer.WriteHeader(400)
