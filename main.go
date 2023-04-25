@@ -6,18 +6,19 @@ import (
 	"log"
 	"net/http"
 	"context"
-	"database/sql"
+	//"database/sql"
 	"fmt"
 	"log"
 	"time"
 
-	"github.com/go-sql-driver/mysql"
+	//"github.com/go-sql-driver/mysql"
 	"github.com/go-chi/chi/v5"
 )
 
 var pool *sql.DB //Database Connection pool
 
 func main() {
+    /*
 	// Capture connection properties.
     cfg := mysql.Config{
         User:   os.Getenv("ece461table"),
@@ -38,7 +39,7 @@ func main() {
         log.Fatal(pingErr)
     }
     fmt.Println("Connected!")
-
+*/
     router := chi.NewRouter()
 
 	router.Put("/authenticate", handlers.CreateAuthToken)
