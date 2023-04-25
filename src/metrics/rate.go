@@ -67,7 +67,8 @@ func RatePackage(url string, pkgDirectory string, rating *models.PackageRating, 
 	}
 
 	(*rating).GoodPinningPractice = getGoodPinningPractices(gitEndpoint, httpClient)
-	(*rating).GoodEngineeringProcess = getGoodEngineeringProcess(gitEndpoint, httpClient, pkgDirectory)
+	// (*rating).GoodEngineeringProcess = getGoodEngineeringProcess(gitEndpoint, httpClient, pkgDirectory)
+	(*rating).GoodEngineeringProcess = 0.0
 
 	(*rating).NetScore = getNetScore(*rating)
 
