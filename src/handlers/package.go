@@ -466,6 +466,12 @@ func DeletePackage(writer http.ResponseWriter, request *http.Request) {
 
 	if given_xAuth == auth_success {
 
+		if !db.DoesPackageExist(id) {
+			writer.WriteHeader(404)
+			writer.Write([]byte("Package does not exist"))
+			return
+		}
+
 		db.DeleteObject(BucketName, id)
 
 		writer.WriteHeader(200)
