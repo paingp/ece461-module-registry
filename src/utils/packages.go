@@ -2,16 +2,10 @@ package utils
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
-	// "log"
-	// "path"
 	"regexp"
 	"strings"
-	// "tomr/models"
-	// "tomr/src/db"
-	// "tomr/src/metrics"
-
-	"encoding/json"
 
 	"cloud.google.com/go/storage"
 )

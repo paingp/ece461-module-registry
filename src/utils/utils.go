@@ -135,7 +135,7 @@ func GetMetadataFromZip(zipFile string, metadata *models.PackageMetadata, readme
 		} else if strings.Count(f.Name, "/") == 1 {
 			matched, _ := regexp.MatchString(`(?i)readme`, f.Name)
 			if matched {
-				fmt.Printf("Matched: %s\n", f.Name)
+				//fmt.Printf("Matched: %s\n", f.Name)
 				*readme = GetReadMeFromZip(f)
 			}
 		}
@@ -160,29 +160,3 @@ func GetReadMeFromZip(readme *zip.File) []byte {
 	}
 	return bytes
 }
-
-
-
-/*
-func walk(path string, d fs.DirEntry, err error) error {
-	maxDepth := 1
-	if (err != nil) {
-		return err
-	}
-	if d.IsDir() && strings.Count(path, string(os.PathSeparator)) > maxDepth {
-		return fs.SkipDir
-	} else {
-		// Checking paths
-		matched, _ := regexp.MatchString(`(?i)readme`, path)
-		if (matched) {
-			// Checking matched path
-			check, _ := regexp.MatchString("(?i)guid", path)
-			if !check {
-				// Finding readme
-				readme = path
-			}
-		}
-	}
-	return nil
-}
-*/
