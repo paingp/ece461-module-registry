@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"log"
 	"net/http"
 	"os"
@@ -46,7 +45,8 @@ func main() {
 		//port = "3000"
 
 	}
-	fmt.Printf("Server started on PORT %s\n", port)
+  
+	log.Printf("Server started on PORT %s\n", port)
 
 	log.Fatal(http.ListenAndServe(":"+port, router))
 }

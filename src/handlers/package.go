@@ -479,7 +479,7 @@ func DeletePackage(writer http.ResponseWriter, request *http.Request) {
 		}
 
 		db.DeleteObject(id)
-
+    
 		writer.WriteHeader(200)
 		writer.Write([]byte("Version is deleted."))
 	} else {
@@ -659,6 +659,8 @@ func RatePackage(writer http.ResponseWriter, request *http.Request) {
 }
 
 func CreateAuthToken(writer http.ResponseWriter, request *http.Request) {
+
+
 
 	type User_struct struct {
 		Name    string `json:"name"`
