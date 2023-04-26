@@ -11,7 +11,7 @@ import (
 	"math"
 	"net/http"
 	"os"
-	"os/exec"
+	// "os/exec"
 	"path"
 	"path/filepath"
 	"regexp"
@@ -23,6 +23,7 @@ import (
 	"tomr/src/utils"
 
 	"github.com/shurcooL/githubv4"
+	"github.com/hhatto/gocloc"
 )
 
 // var compatibleLicenses = [...]string{"MIT", "LGPLv2.1", "Expat", "X11", "MPL-2.0", "Mozilla Public", "Artistic License 2", "GPLv2", "GPLv3"}
@@ -407,32 +408,52 @@ func getGoodPinningPractices(url string, client *http.Client) float64 {
 }
 
 func getTotalLines(directory string) int {
-	total := -1
-	cmd := exec.Command("gocloc", directory)
+	languages := gocloc.NewDefinedLanguages()
+	options := gocloc.NewClocOptions()
+	paths := []string{
+		"src/metrics/temp",
+	}
 
-	var stdout, stderr bytes.Buffer
-	cmd.Stdout = &stdout
-	cmd.Stderr = &stderr
-
-	err := cmd.Run()
+	processor := gocloc.NewProcessor(languages, options)
+	result, err := processor.Analyze(paths)
 	if err != nil {
-		log.Fatal(err)
-		log.Fatal("Failed to run cloc command")
-		return total
-	} else if stderr.Len() != 0 {
-		log.Fatalf("Stderr: %s", stderr.String())
+		fmt.Printf("gocloc fail. error: %v\n", err)
+		return -1
 	}
 
-	_, clocOut, found := strings.Cut(stdout.String(), "TOTAL")
-	if found {
-		re := regexp.MustCompile(`[0-9]+`)
-		lines := re.FindAllString(clocOut, -1)
-		blank, _ := strconv.Atoi(lines[1])
-		comment, _ := strconv.Atoi(lines[2])
-		code, _ := strconv.Atoi(lines[3])
-		total = blank + comment + code
-	}
-	return total
+	// for _ , item := range result.Files {
+	// 	fmt.Println(item)
+	// }
+	// fmt.Println(result.Files)
+	// fmt.Printf("%+v", result.Total.Code)
+	// total := -1
+	// cmd := exec.Command("go run gocloc-master/cmd/gocloc/main.go", directory)
+
+	// var stdout, stderr bytes.Buffer
+	// cmd.Stdout = &stdout
+	// cmd.Stderr = &stderr
+
+	// err = cmd.Run()
+	// if err != nil {
+	// 	log.Fatal(err)
+	// 	log.Fatal("Failed to run cloc command")
+	// 	return total
+	// } else if stderr.Len() != 0 {
+	// 	log.Fatalf("Stderr: %s", stderr.String())
+	// }
+
+	// _, clocOut, found := strings.Cut(stdout.String(), "TOTAL")
+	// if found {
+	// 	re := regexp.MustCompile(`[0-9]+`)
+	// 	lines := re.FindAllString(clocOut, -1)
+	// 	blank, _ := strconv.Atoi(lines[1])
+	// 	comment, _ := strconv.Atoi(lines[2])
+	// 	code, _ := strconv.Atoi(lines[3])
+	// 	total = blank + comment + code
+	// }
+	// return total
+	fmt.Println(result.Total.Code + result.Total.Comments + result.Total.Blanks + result.Total.Total)
+	return int(result.Total.Code + result.Total.Comments + result.Total.Blanks + result.Total.Total)
 }
 
 func getGoodEngineeringProcess(url string, client *http.Client, pkgDir string) float64 {
