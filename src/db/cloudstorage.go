@@ -72,9 +72,32 @@ func DoesPackageExist(name string) bool {
 	return false
 }
 
-func DeleteObject(bucket, object string) error {
-	// bucket := "bucket-name"
-	// object := "object-name"
+func DeleteBucketContents() error {
+	ctx := context.Background()
+	client, err := storage.NewClient(ctx)
+	if err != nil {
+		return err
+	}
+	defer client.Close()
+
+	ctx, cancel := context.WithTimeout(ctx, time.Second*30)
+	defer cancel()
+
+	it := client.Bucket(BucketName).Objects(ctx, nil)
+	for {
+		attrs, err := it.Next()
+		if err == iterator.Done {
+			break
+		}
+		if err != nil {
+			return err
+		}
+		DeleteObject((attrs.Name))
+	}
+	return nil
+}
+
+func DeleteObject(object string) error {
 	ctx := context.Background()
 	client, err := storage.NewClient(ctx)
 	if err != nil {
@@ -85,7 +108,7 @@ func DeleteObject(bucket, object string) error {
 	ctx, cancel := context.WithTimeout(ctx, time.Second*10)
 	defer cancel()
 
-	o := client.Bucket(bucket).Object(object)
+	o := client.Bucket(BucketName).Object(object)
 
 	// Optional: set a generation-match precondition to avoid potential race
 	// conditions and data corruptions. The request to delete the file is aborted
