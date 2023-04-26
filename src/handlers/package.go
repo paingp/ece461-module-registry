@@ -41,13 +41,16 @@ func CreatePackage(writer http.ResponseWriter, request *http.Request) {
 
 	request.ParseForm()
 
-	var given_xAuth string
+	// var given_xAuth string
 
-	if request.Form["X-Authorization"] != nil {
-		given_xAuth = request.Form["X-Authorization"][0]
-	} else {
-		given_xAuth = request.Header["X-Authorization"][0]
-	}
+	// if request.Form["X-Authorization"] != nil {
+	// 	given_xAuth = request.Form["X-Authorization"][0]
+	// } else {
+	// 	given_xAuth = request.Header["X-Authorization"][0]
+	// }
+
+	given_xAuth := auth_success
+	fmt.Print("Got here with the hardcoded xAuth")
 
 	if given_xAuth == auth_success {
 		var data models.PackageData
@@ -58,12 +61,16 @@ func CreatePackage(writer http.ResponseWriter, request *http.Request) {
 		url := data.URL
 		jsprogram := data.JSProgram
 
+		fmt.Print("Umarshalled input json")
+
 		packageData := models.PackageData{Content: content, URL: url, JSProgram: jsprogram}
 		pkgDir := ""
 		metadata := models.PackageMetadata{}
 		//utils.PrintPackageData(packageData)
 		rating := models.PackageRating{}
 		var readMe []byte
+
+		fmt.Print("is it getting here?")
 		// Return Error 400 if both Content and URL are set
 		if (packageData.Content != "") && (packageData.URL != "") {
 			writer.WriteHeader(400)
@@ -115,6 +122,8 @@ func CreatePackage(writer http.ResponseWriter, request *http.Request) {
 				os.RemoveAll(PkgDirPath)
 				return
 			}
+
+			fmt.Print("here1")
 			// Check if package meets criteria for ingestion
 			utils.GetPackageMetadata(pkgDir, &metadata)
 
@@ -124,6 +133,8 @@ func CreatePackage(writer http.ResponseWriter, request *http.Request) {
 				os.RemoveAll(PkgDirPath)
 				return
 			}
+
+			fmt.Print("here2")
 
 			err = utils.ZipDirectory(pkgDir, pkgDir+".zip")
 			if err != nil {
@@ -138,6 +149,8 @@ func CreatePackage(writer http.ResponseWriter, request *http.Request) {
 			writer.WriteHeader(201)
 			writer.Write([]byte("Success. Check the ID in the returned metadata for the official ID.\n"))
 		}
+
+		fmt.Print("here3")
 
 		pkg := models.PackageObject{Metadata: &metadata, Data: &packageData, Rating: &rating}
 
@@ -167,6 +180,8 @@ func CreatePackage(writer http.ResponseWriter, request *http.Request) {
 			fmt.Print("did not get return json")
 		}
 
+		fmt.Print("here4")
+
 		var returnVal db.Return_storage
 		json.Unmarshal(return_json, &returnVal)
 
@@ -174,6 +189,8 @@ func CreatePackage(writer http.ResponseWriter, request *http.Request) {
 		return_json, _ = json.MarshalIndent(returnVal, "", "  ")
 
 		writer.Write([]byte(string(return_json)))
+
+		fmt.Print("gotten here to the end")
 
 		os.RemoveAll(writePath)
 		os.RemoveAll(PkgDirPath)
@@ -449,6 +466,12 @@ func DeletePackage(writer http.ResponseWriter, request *http.Request) {
 
 	if given_xAuth == auth_success {
 
+		if !db.DoesPackageExist(id) {
+			writer.WriteHeader(404)
+			writer.Write([]byte("Package does not exist"))
+			return
+		}
+
 		db.DeleteObject(BucketName, id)
 
 		writer.WriteHeader(200)
@@ -631,6 +654,8 @@ func RatePackage(writer http.ResponseWriter, request *http.Request) {
 
 func CreateAuthToken(writer http.ResponseWriter, request *http.Request) {
 
+
+
 	type User_struct struct {
 		Name    string `json:"name"`
 		IsAdmin bool   `json:"isAdmin"`
@@ -650,7 +675,9 @@ func CreateAuthToken(writer http.ResponseWriter, request *http.Request) {
 	// fmt.Print(body)
 	json.Unmarshal([]byte(body), &auth_struct)
 
-	// fmt.Print(auth_struct.Secret.Password)
+	fmt.Print(auth_struct.Secret.Password)
+	fmt.Print("\n")
+	fmt.Print("correcthorsebatterystaple123(!__+@**(A'\"`;DROP TABLE packages;")
 
 	if auth_struct == (Auth{}) || auth_struct.User == (User_struct{}) || auth_struct.Secret == (Secret_struct{}) {
 		writer.WriteHeader(400)

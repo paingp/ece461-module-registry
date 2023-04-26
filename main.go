@@ -47,5 +47,6 @@ func main() {
 
 	}
 	fmt.Printf("Server started on PORT %s\n", port)
+
 	log.Fatal(http.ListenAndServe(":"+port, router))
 }
