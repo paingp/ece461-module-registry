@@ -407,8 +407,8 @@ func getGoodPinningPractices(url string, client *http.Client) float64 {
 }
 
 func getTotalLines(directory string) int {
-	lines := -1
-	cmd := exec.Command("cloc", "--csv", directory)
+	total := -1
+	cmd := exec.Command("gocloc", directory)
 
 	var stdout, stderr bytes.Buffer
 	cmd.Stdout = &stdout
@@ -416,24 +416,22 @@ func getTotalLines(directory string) int {
 
 	err := cmd.Run()
 	if err != nil {
-		log.Fatal(err)
 		log.Fatal("Failed to run cloc command")
-		return lines
+		return total
 	} else if stderr.Len() != 0 {
 		log.Fatalf("Stderr: %s", stderr.String())
 	}
 
-	_, result, found := strings.Cut(stdout.String(), "SUM")
+	_, clocOut, found := strings.Cut(stdout.String(), "TOTAL")
 	if found {
-		clocSum := strings.Split(result, ",")
-		clocSum[3] = strings.Trim(clocSum[3], "\n")
-		blank, _ := strconv.Atoi(clocSum[1])
-		comment, _ := strconv.Atoi(clocSum[2])
-		code, _ := strconv.Atoi(clocSum[3])
-		lines = blank + comment + code
+		re := regexp.MustCompile(`[0-9]+`)
+		lines := re.FindAllString(clocOut, -1)
+		blank, _ := strconv.Atoi(lines[1])
+		comment, _ := strconv.Atoi(lines[2])
+		code, _ := strconv.Atoi(lines[3])
+		total = blank + comment + code
 	}
-	//fmt.Printf("%d", lines)
-	return lines
+	return total
 }
 
 func getGoodEngineeringProcess(url string, client *http.Client, pkgDir string) float64 {
