@@ -5,9 +5,9 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
+	"log"
 	"net/http"
 	"os"
-	"os/exec"
 	"path"
 	"regexp"
 	"strconv"
@@ -287,7 +287,7 @@ func ResetRegistry(writer http.ResponseWriter, request *http.Request) {
 
 	if given_xAuth == auth_success {
 
-		cmd := exec.Command("python3", "src/gcp_calc/deleteBucket.py", "tomr")
+		// cmd := exec.Command("python3", "src/gcp_calc/deleteBucket.py", "tomr")
 		// err := cmd.Run()
 
 		// if err != nil {
@@ -296,10 +296,16 @@ func ResetRegistry(writer http.ResponseWriter, request *http.Request) {
 		// 	return
 		// }
 
-		output, err := cmd.CombinedOutput()
+		// output, err := cmd.CombinedOutput()
+		// if err != nil {
+		// 	fmt.Println(fmt.Sprint(err) + ": " + string(output))
+		// 	return
+		// }
+
+		err := db.DeleteBucketContents()
+
 		if err != nil {
-			fmt.Println(fmt.Sprint(err) + ": " + string(output))
-			return
+			log.Fatal("Could not delete bucket contents in ResetRegistry()")
 		}
 
 		writer.WriteHeader(200)
@@ -404,7 +410,7 @@ func UpdatePackage(writer http.ResponseWriter, request *http.Request) {
 			return
 		}
 
-		db.DeleteObject(BucketName, id)
+		db.DeleteObject(id)
 
 		var recieve_package Package
 		body, _ := io.ReadAll(request.Body)
@@ -430,7 +436,7 @@ func UpdatePackage(writer http.ResponseWriter, request *http.Request) {
 			return
 		}
 
-		db.DeleteObject(BucketName, id)
+		// db.DeleteObject(id)
 
 		err = db.UploadPackage(writePath, id)
 		if err != nil {
@@ -472,8 +478,8 @@ func DeletePackage(writer http.ResponseWriter, request *http.Request) {
 			return
 		}
 
-		db.DeleteObject(BucketName, id)
-
+		db.DeleteObject(id)
+    
 		writer.WriteHeader(200)
 		writer.Write([]byte("Version is deleted."))
 	} else {

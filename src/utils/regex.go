@@ -173,7 +173,7 @@ func History(name string, delete int, args ...string) [][]byte {
 		}
 
 		if isMatch && delete == 1 {
-			db.DeleteObject("tomr", obj.Name)
+			db.DeleteObject(obj.Name)
 		}
 
 		if isMatch {
