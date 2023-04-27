@@ -4,7 +4,6 @@ import (
 	"log"
 	"net/http"
 	"os"
-
 	"tomr/src/handlers"
 
 	"github.com/go-chi/chi/v5"
@@ -45,7 +44,7 @@ func main() {
 		//port = "3000"
 
 	}
-  
+
 	log.Printf("Server started on PORT %s\n", port)
 
 	log.Fatal(http.ListenAndServe(":"+port, router))
