@@ -57,6 +57,7 @@ func CreatePackage(writer http.ResponseWriter, request *http.Request) {
 
 		content := data.Content
 		url := data.URL
+		fmt.Print("URL: " + url + "\n")
 		jsprogram := data.JSProgram
 
 		packageData := models.PackageData{Content: content, URL: url, JSProgram: jsprogram}
