@@ -12,20 +12,7 @@ import (
 	"github.com/go-chi/chi/v5"
 )
 
-func responseJSON(payload interface{}) {
-	response, err := json.MarshalIndent(payload, "", "  ")
-	if err != nil {
-		panic(err)
-	}
-	fmt.Printf(string(response))
-}
-
 func main() {
-	data := models.PackageData{"Content", "https://github.com/lodash/lodash", "console.log('Hello World')"}
-	metadata := models.PackageMetadata{"Lodash", "5.0.0", "Lodash(^5.0.0)", "", ""}
-	pkg := models.Package{metadata, data}
-	responseJSON(pkg)
-
 	router := chi.NewRouter()
 
 	router.Put("/authenticate", handlers.CreateAuthToken)
@@ -61,7 +48,7 @@ func main() {
 
 	}
 
-	//log.Printf("Server started on PORT %s\n", port)
+	log.Printf("Server started on PORT %s\n", port)
 
-	//log.Fatal(http.ListenAndServe(":"+port, router))
+	log.Fatal(http.ListenAndServe(":"+port, router))
 }
