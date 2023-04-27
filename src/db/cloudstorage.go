@@ -72,7 +72,7 @@ func DoesPackageExist(name string) bool {
 	return false
 }
 
-func DeleteBucketContents() error {
+func DeleteObjects() error {
 	ctx := context.Background()
 	client, err := storage.NewClient(ctx)
 	if err != nil {
