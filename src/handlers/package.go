@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
-	"log"
 	"net/http"
 	"os"
 	"path"
@@ -25,17 +24,7 @@ const PkgDirPath = "src/metrics/temp" // temp directory to store packages
 // const auth_success = "ABC"
 const auth_success = "bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJuYW1lIjoiZWNlMzA4NjFkZWZhdWx0YWRtaW51c2VyIiwicGFzc3dvcmQiOiJjb3JyZWN0aG9yc2ViYXR0ZXJ5c3RhcGxlMTIzKCFfXytAKiooQeKAmeKAnWA7RFJPUCBUQUJMRSBwYWNrYWdlczsifQ.TSGs6VJMFx5NV2RoHrhEP_FK8nv4Wlzc4gQls2JYPC4"
 const BucketName = "tomr"
-
-type metadata struct {
-	Name    string `json:"Name"`
-	Version string `json:"Version"`
-	ID      string `json:"ID"`
-}
-
-type Package struct {
-	Metadata metadata           `json:"metadata"`
-	Data     models.PackageData `json:"data"`
-}
+const MaxContentLen = 3e7
 
 func CreatePackage(writer http.ResponseWriter, request *http.Request) {
 
@@ -73,9 +62,8 @@ func CreatePackage(writer http.ResponseWriter, request *http.Request) {
 		fmt.Print("is it getting here?")
 		// Return Error 400 if both Content and URL are set
 		if (packageData.Content != "") && (packageData.URL != "") {
-			writer.WriteHeader(400)
-			writer.Write([]byte("There is missing field(s) in the PackageData/AuthenticationToken or it is formed improperly, or the AuthenticationToken is invalid."))
-			os.RemoveAll(PkgDirPath)
+			badRequest(writer, "There is missing field(s) in the PackageData/AuthenticationToken or "+
+				"it is formed improperly (e.g. Content and URL are both set), or the AuthenticationToken is invalid.")
 			return
 
 		} else if packageData.Content != "" { // Only Content is set
@@ -84,9 +72,7 @@ func CreatePackage(writer http.ResponseWriter, request *http.Request) {
 			utils.Base64ToZip(packageData.Content, pkgDir)
 			err := utils.GetMetadataFromZip(pkgDir, &metadata, &readMe)
 			if err != nil {
-				writer.WriteHeader(400)
-				writer.Write([]byte("Error no metadata in zip"))
-				// log.Fatalf("Failed to get metadata from zip file\n")
+				internalError(writer, "Failed to extract metadata from zip file", err)
 				os.RemoveAll(PkgDirPath)
 				return
 			}
@@ -102,7 +88,6 @@ func CreatePackage(writer http.ResponseWriter, request *http.Request) {
 			if err != nil {
 				writer.WriteHeader(424)
 				writer.Write([]byte("Package is not uploaded due to the disqualified rating."))
-				// log.Fatalf("Failed to get metadata from zip file\n")
 				os.RemoveAll(PkgDirPath)
 				return
 			}
@@ -138,9 +123,7 @@ func CreatePackage(writer http.ResponseWriter, request *http.Request) {
 
 			err = utils.ZipDirectory(pkgDir, pkgDir+".zip")
 			if err != nil {
-				writer.WriteHeader(400)
-				writer.Write([]byte("Unable to zip directory"))
-				// log.Fatalf("Failed to get metadata from zip file\n")
+				internalError(writer, "Failed to zip directory", err)
 				os.RemoveAll(PkgDirPath)
 				return
 			}
@@ -164,12 +147,12 @@ func CreatePackage(writer http.ResponseWriter, request *http.Request) {
 
 		writePath := "src/db/upload.txt"
 		fileWriter, err := os.Create(writePath)
-		fileWriter.WriteString(base64)
+		fileWriter.Write(base64)
 
 		if err != nil {
 			os.RemoveAll(writePath)
 			os.RemoveAll(PkgDirPath)
-			fmt.Print("Failed to write base64 encoding : ", err)
+			fmt.Print("Failed to write base64 encoding", err)
 			return
 		}
 
@@ -185,7 +168,10 @@ func CreatePackage(writer http.ResponseWriter, request *http.Request) {
 		var returnVal db.Return_storage
 		json.Unmarshal(return_json, &returnVal)
 
-		returnVal.Data.Content = base64
+		if len(base64) > MaxContentLen {
+			base64 = base64[:MaxContentLen]
+		}
+		returnVal.Data.Content = string(base64)
 		return_json, _ = json.MarshalIndent(returnVal, "", "  ")
 
 		writer.Write([]byte(string(return_json)))
@@ -196,8 +182,8 @@ func CreatePackage(writer http.ResponseWriter, request *http.Request) {
 		os.RemoveAll(PkgDirPath)
 
 	} else {
-		writer.WriteHeader(400)
-		writer.Write([]byte("There is missing field(s) in the PackageData/AuthenticationToken or it is formed improperly, or the AuthenticationToken is invalid."))
+		badRequest(writer, "There is missing field(s) in the PackageData/AuthenticationToken or "+
+			"it is formed improperly (e.g. Content and URL are both set), or the AuthenticationToken is invalid.")
 	}
 }
 
@@ -231,8 +217,7 @@ func GetPackageByRegEx(writer http.ResponseWriter, request *http.Request) {
 		return_string := utils.Regex(regex_string)
 
 		if len(return_string) == 0 {
-			writer.WriteHeader(404)
-			writer.Write([]byte("Status: 404 No package found under this regex."))
+			notFound(writer, "No package found under this regex.")
 			return
 		}
 
@@ -267,8 +252,8 @@ func GetPackageByRegEx(writer http.ResponseWriter, request *http.Request) {
 		writer.Write([]byte("\n]"))
 
 	} else {
-		writer.WriteHeader(400)
-		writer.Write([]byte("Status: 400 There is missing field(s) in the PackageRegEx/AuthenticationToken or it is formed improperly, or the AuthenticationToken is invalid."))
+		badRequest(writer, "There is missing field(s) in the PackageRegEx/AuthenticationToken "+
+			"or it is formed improperly, or the AuthenticationToken is invalid.")
 	}
 }
 
@@ -287,32 +272,17 @@ func ResetRegistry(writer http.ResponseWriter, request *http.Request) {
 
 	if given_xAuth == auth_success {
 
-		// cmd := exec.Command("python3", "src/gcp_calc/deleteBucket.py", "tomr")
-		// err := cmd.Run()
-
-		// if err != nil {
-		// 	fmt.Print("Error here\n")
-		// 	println(err.Error())
-		// 	return
-		// }
-
-		// output, err := cmd.CombinedOutput()
-		// if err != nil {
-		// 	fmt.Println(fmt.Sprint(err) + ": " + string(output))
-		// 	return
-		// }
-
-		err := db.DeleteBucketContents()
+		err := db.DeleteObjects()
 
 		if err != nil {
-			log.Fatal("Could not delete bucket contents in ResetRegistry()")
+			internalError(writer, "Failed to delete all objects in bucket", err)
 		}
 
 		writer.WriteHeader(200)
 		writer.Write([]byte("Registry is reset."))
 	} else {
-		writer.WriteHeader(400)
-		writer.Write([]byte("There is missing field(s) in the AuthenticationToken or it is formed improperly, or the AuthenticationToken is invalid."))
+		badRequest(writer, "There is missing field(s) in the AuthenticationToken "+
+			"or it is formed improperly, or the AuthenticationToken is invalid.")
 	}
 
 }
@@ -335,21 +305,23 @@ func RetrievePackage(writer http.ResponseWriter, request *http.Request) {
 
 		filepath := "src/handlers/readTo.txt"
 
-		errFile := db.DownloadFile(id, filepath)
+		err := db.DownloadFile(id, filepath)
 
-		if errFile != nil {
-			writer.WriteHeader(404)
-			writer.Write([]byte("Package does not exist."))
+		if err != nil {
+			notFound(writer, "Package does not exist.")
 			return
 		}
 
-		dat, err := os.ReadFile(filepath)
+		data, err := os.ReadFile(filepath)
 
 		if err != nil {
-			panic(err)
+			internalError(writer, "Failed to read file downloaded with object ID: "+id, err)
 		}
 
-		base64 := string(dat) // get file contents
+		if len(data) > MaxContentLen {
+			data = data[:MaxContentLen]
+		}
+		base64 := string(data) // get file contents
 
 		regex_str := "(.*?)" + `\((.*?)\)`
 		pattern, _ := regexp.Compile(regex_str)
@@ -361,7 +333,7 @@ func RetrievePackage(writer http.ResponseWriter, request *http.Request) {
 		attrs, _ := db.GetMetadata(BucketName, id)
 		metadata := attrs.Metadata
 
-		var return_package Package
+		var return_package models.Package
 		return_package.Metadata.Name = rs[1]
 		return_package.Metadata.Version = rs[2]
 		return_package.Metadata.ID = metadata["ID"]
@@ -378,8 +350,8 @@ func RetrievePackage(writer http.ResponseWriter, request *http.Request) {
 		writer.WriteHeader(200)
 		writer.Write([]byte(string(b)))
 	} else if given_xAuth == "" || id == "" {
-		writer.WriteHeader(400)
-		writer.Write([]byte("There is missing field(s) in the PackageID/AuthenticationToken or it is formed improperly, or the AuthenticationToken is invalid."))
+		badRequest(writer, "There is missing field(s) in the PackageID/AuthenticationToken "+
+			" or it is formed improperly, or the AuthenticationToken is invalid.")
 	} else {
 		writer.Write([]byte("{\n  \"code\": 0,\n  \"message\": \"Other Error\"\n}"))
 	}
@@ -405,14 +377,13 @@ func UpdatePackage(writer http.ResponseWriter, request *http.Request) {
 	if given_xAuth == auth_success {
 
 		if !db.DoesPackageExist(id) {
-			writer.WriteHeader(404)
-			writer.Write([]byte("Package does not exist"))
+			notFound(writer, "Package does not exist")
 			return
 		}
 
 		db.DeleteObject(id)
 
-		var recieve_package Package
+		var recieve_package models.Package
 		body, _ := io.ReadAll(request.Body)
 		json.Unmarshal(body, &recieve_package)
 
@@ -431,8 +402,8 @@ func UpdatePackage(writer http.ResponseWriter, request *http.Request) {
 		fileWriter.WriteString(content)
 
 		if err != nil {
+			internalError(writer, "Failed to write base64 encodeing", err)
 			os.RemoveAll(writePath)
-			fmt.Printf("Failed to write base64 encoding : %s\n", err)
 			return
 		}
 
@@ -440,7 +411,7 @@ func UpdatePackage(writer http.ResponseWriter, request *http.Request) {
 
 		err = db.UploadPackage(writePath, id)
 		if err != nil {
-			fmt.Printf("Failed to upload package to cloud storage\n%v", err)
+			internalError(writer, "Failed to upload package to the system", err)
 		}
 
 		db.SetMetadata(objMetadata, id)
@@ -449,8 +420,8 @@ func UpdatePackage(writer http.ResponseWriter, request *http.Request) {
 		writer.Write([]byte("Version is updated"))
 
 	} else {
-		writer.WriteHeader(400)
-		writer.Write([]byte("There is missing field(s) in the PackageID/AuthenticationToken or it is formed improperly, or the AuthenticationToken is invalid."))
+		badRequest(writer, "There is missing field(s) in the PackageID/AuthenticationToken "+
+			" or it is formed improperly, or the AuthenticationToken is invalid.")
 	}
 }
 
@@ -473,18 +444,17 @@ func DeletePackage(writer http.ResponseWriter, request *http.Request) {
 	if given_xAuth == auth_success {
 
 		if !db.DoesPackageExist(id) {
-			writer.WriteHeader(404)
-			writer.Write([]byte("Package does not exist"))
+			notFound(writer, "Package does not exist")
 			return
 		}
 
 		db.DeleteObject(id)
-    
+
 		writer.WriteHeader(200)
 		writer.Write([]byte("Version is deleted."))
 	} else {
-		writer.WriteHeader(401)
-		writer.Write([]byte("There is missing field(s) in the PackageID/AuthenticationToken or it is formed improperly, or the AuthenticationToken is invalid."))
+		badRequest(writer, "There is missing field(s) in the PackageID/AuthenticationToken "+
+			" or it is formed improperly, or the AuthenticationToken is invalid.")
 	}
 }
 
@@ -543,8 +513,9 @@ func ListPackages(writer http.ResponseWriter, request *http.Request) {
 		}
 
 	} else if given_xAuth == "" {
-		writer.WriteHeader(400)
-		writer.Write([]byte("There is missing field(s) in the PackageData/AuthenticationToken or it is formed improperly, or the AuthenticationToken is invalid."))
+		badRequest(writer, "There is missing field(s) in the PackageQuery/AuthenticationToken "+
+			"or it is formed improperly, or the AuthenticationToken is invalid.")
+
 	} else {
 		writer.Write([]byte("{\n  \"code\": 0,\n  \"message\": \"Other Error\"\n}"))
 	}
@@ -570,8 +541,7 @@ func RatePackage(writer http.ResponseWriter, request *http.Request) {
 	if given_xAuth == auth_success {
 
 		if !db.DoesPackageExist(id) {
-			writer.WriteHeader(404)
-			writer.Write([]byte("Package does not exist."))
+			notFound(writer, "Package does not exist.")
 			return
 		}
 
@@ -653,14 +623,12 @@ func RatePackage(writer http.ResponseWriter, request *http.Request) {
 		writer.Write([]byte(string(return_json)))
 		// writer.Write([]byte("Success. Check the ID in the returned metadata for the official ID."))
 	} else {
-		writer.WriteHeader(400)
-		writer.Write([]byte("There is missing field(s) in the PackageID/AuthenticationToken or it is formed improperly, or the AuthenticationToken is invalid."))
+		badRequest(writer, "There is missing field(s) in the PackageID/AuthenticationToken "+
+			"or it is formed improperly, or the AuthenticationToken is invalid.")
 	}
 }
 
 func CreateAuthToken(writer http.ResponseWriter, request *http.Request) {
-
-
 
 	type User_struct struct {
 		Name    string `json:"name"`
@@ -686,8 +654,7 @@ func CreateAuthToken(writer http.ResponseWriter, request *http.Request) {
 	fmt.Print("correcthorsebatterystaple123(!__+@**(A'\"`;DROP TABLE packages;")
 
 	if auth_struct == (Auth{}) || auth_struct.User == (User_struct{}) || auth_struct.Secret == (Secret_struct{}) {
-		writer.WriteHeader(400)
-		writer.Write([]byte("There is missing field(s) in the AuthenticationRequest or it is formed improperly."))
+		badRequest(writer, "There is missing field(s) in the AuthenticationRequest or it is formed improperly.")
 		return
 	}
 
@@ -724,8 +691,7 @@ func GetPackageByName(writer http.ResponseWriter, request *http.Request) {
 		results := utils.History(name, 0)
 
 		if len(results) == 0 {
-			writer.WriteHeader(404)
-			writer.Write([]byte("No such package."))
+			notFound(writer, "No such package.")
 			return
 		}
 
@@ -736,8 +702,8 @@ func GetPackageByName(writer http.ResponseWriter, request *http.Request) {
 		}
 
 	} else if given_xAuth == "" || name == "" || given_xAuth != auth_success {
-		writer.WriteHeader(400)
-		writer.Write([]byte("There is missing field(s) in the PackageID/AuthenticationToken or it is formed improperly, or the AuthenticationToken is invalid."))
+		badRequest(writer, "There is missing field(s) in the PackageName/AuthenticationToken "+
+			"or it is formed improperly, or the AuthenticationToken is invalid.")
 	} else {
 		writer.Write([]byte("{\n  \"code\": 0,\n  \"message\": \"Other Error\"\n}"))
 	}
@@ -762,8 +728,7 @@ func DeletePackageByName(writer http.ResponseWriter, request *http.Request) {
 		results := utils.History(name, 1)
 
 		if len(results) == 0 {
-			writer.WriteHeader(404)
-			writer.Write([]byte("Package does not exist."))
+			notFound(writer, "Package does not exist.")
 			return
 		}
 
@@ -771,7 +736,7 @@ func DeletePackageByName(writer http.ResponseWriter, request *http.Request) {
 		writer.Write([]byte("Package is deleted."))
 
 	} else {
-		writer.WriteHeader(400)
-		writer.Write([]byte("There is missing field(s) in the PackageID/AuthenticationToken or it is formed improperly, or the AuthenticationToken is invalid."))
+		badRequest(writer, "There is missing field(s) in the PackageName/AuthenticationToken "+
+			"or it is formed improperly, or the AuthenticationToken is invalid.")
 	}
 }

@@ -15,15 +15,17 @@ import (
 	"tomr/models"
 )
 
-func ZipToBase64(zipFile string) (string, error) {
+func ZipToBase64(zipFile string) ([]byte, error) {
 	bytes, err := os.ReadFile(zipFile)
 
 	if err != nil {
 		log.Fatalf("Failed to read ZIP file: %s\n%s", zipFile, err)
-		return "", err
+		return nil, err
 	}
+	dest := make([]byte, base64.StdEncoding.EncodedLen(len(bytes)))
+	base64.StdEncoding.Encode(dest, bytes)
 
-	return base64.StdEncoding.EncodeToString(bytes), err
+	return dest, err
 }
 
 func Base64ToZip(b64string string, zipDirectory string) error {
@@ -79,17 +81,6 @@ func ZipDirectory(pathToZip string, destinationPath string) error {
 	return nil
 }
 
-/*
-	func ZipDirectory(directory *string) error {
-		cmd := exec.Command("zip", "-r", *directory+".zip", *directory)
-		err := cmd.Run()
-		if err != nil {
-			return fmt.Errorf("Failed to zip directory: %s", *directory)
-		}
-		*directory += ".zip"
-		return err
-	}
-*/
 func GetPackageMetadata(directory string, metadata *models.PackageMetadata) error {
 	pkgJsonPath := path.Join(directory, "package.json")
 	file, err := os.Open(pkgJsonPath)
