@@ -1,12 +1,9 @@
 package main
 
 import (
-	"encoding/json"
-	"fmt"
 	"log"
 	"net/http"
 	"os"
-	"tomr/models"
 	"tomr/src/handlers"
 
 	"github.com/go-chi/chi/v5"
