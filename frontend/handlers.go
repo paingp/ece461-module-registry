@@ -605,3 +605,47 @@ func HandleDeletehistory(writer http.ResponseWriter, request *http.Request) {
 	writer.Write([]byte(string(resp.Status) + "\n"))
 	writer.Write([]byte(string(resp_body)))
 }
+
+////
+
+func RenderListall(w http.ResponseWriter, r *http.Request) {
+	fp := path.Join("template", "index.html")
+	tmpl, err := template.ParseFiles(fp)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	if err := tmpl.Execute(w, nil); err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+	}
+}
+
+func HandleListall(writer http.ResponseWriter, request *http.Request) {
+
+	request.ParseForm()
+
+	given_xAuth := "bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJuYW1lIjoiZWNlMzA4NjFkZWZhdWx0YWRtaW51c2VyIiwicGFzc3dvcmQiOiJjb3JyZWN0aG9yc2ViYXR0ZXJ5c3RhcGxlMTIzKCFfXytAKiooQeKAmeKAnWA7RFJPUCBUQUJMRSBwYWNrYWdlczsifQ.TSGs6VJMFx5NV2RoHrhEP_FK8nv4Wlzc4gQls2JYPC4"
+
+	client := &http.Client{}
+	req, err := http.NewRequest("POST", "https://tomr-g17-mdljbaftcq-uc.a.run.app/package/byRegEx", nil)
+	if err != nil {
+		fmt.Println("request error")
+		return
+	}
+
+	req.Header.Add("X-Authorization", given_xAuth)
+	req.Header.Add("Regex", "(.*?)")
+
+	resp, err := client.Do(req)
+
+	if err != nil {
+		fmt.Print(err)
+	}
+
+	defer resp.Body.Close()
+	body, _ := ioutil.ReadAll(resp.Body) // response body is []byte
+
+	writer.Write([]byte(string(resp.Status) + "\n"))
+	writer.Write([]byte(string(body)))
+}

@@ -50,6 +50,9 @@ func main() {
 	router.Get("/UI/Deletehistory", frontend.RenderDeletehistory)
 	router.Post("/UI/Deletehistory", frontend.HandleDeletehistory)
 
+	router.Get("/UI/Listall", frontend.RenderListall)
+	router.Post("/UI/Listall", frontend.HandleListall)
+
 
 	router.Get("/", frontend.RenderHome)
 	// router.Get("/", frontend.RenderHome)
