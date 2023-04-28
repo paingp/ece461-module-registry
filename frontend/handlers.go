@@ -51,7 +51,7 @@ func HandleReset(writer http.ResponseWriter, request *http.Request) {
 
 	client := &http.Client{}
 
-	req, err := http.NewRequest("DELETE", " https://tomr-g17-mdljbaftcq-uc.a.run.app/reset", nil)
+	req, err := http.NewRequest("DELETE", "https://tomr-g17-mdljbaftcq-uc.a.run.app/reset", nil)
 	if err != nil {
 		fmt.Println("request error")
 		return
@@ -101,8 +101,9 @@ func HandleGETPackage(writer http.ResponseWriter, request *http.Request) {
 
 	client := &http.Client{}
 
-	req, err := http.NewRequest("GET", " https://tomr-g17-mdljbaftcq-uc.a.run.app/package/"+id, nil)
+	req, err := http.NewRequest("GET", "https://tomr-g17-mdljbaftcq-uc.a.run.app/package/"+id, nil)
 	if err != nil {
+		fmt.Print(err)
 		fmt.Println("request error")
 		return
 	}
@@ -160,7 +161,7 @@ func HandlePackage(writer http.ResponseWriter, request *http.Request) {
 
 	client := &http.Client{}
 
-	req, err := http.NewRequest("POST", " https://tomr-g17-mdljbaftcq-uc.a.run.app/package/", nil)
+	req, err := http.NewRequest("POST", "https://tomr-g17-mdljbaftcq-uc.a.run.app/package/", nil)
 	if err != nil {
 		fmt.Println("request error")
 		return
@@ -215,7 +216,7 @@ func HandleDELETEPackage(writer http.ResponseWriter, request *http.Request) {
 
 	client := &http.Client{}
 
-	req, err := http.NewRequest("DELETE", " https://tomr-g17-mdljbaftcq-uc.a.run.app/package/"+id, nil)
+	req, err := http.NewRequest("DELETE", "https://tomr-g17-mdljbaftcq-uc.a.run.app/package/"+id, nil)
 	if err != nil {
 		fmt.Println("request error")
 		return
@@ -375,7 +376,7 @@ func HandlePackages(writer http.ResponseWriter, request *http.Request) {
 	}
 
 	client := &http.Client{}
-	req, err := http.NewRequest("POST", " https://tomr-g17-mdljbaftcq-uc.a.run.app/packages", strings.NewReader(full_body))
+	req, err := http.NewRequest("POST", "https://tomr-g17-mdljbaftcq-uc.a.run.app/packages", strings.NewReader(full_body))
 	if err != nil {
 		fmt.Println("request error")
 		return
@@ -425,7 +426,7 @@ func HandleRegex(writer http.ResponseWriter, request *http.Request) {
 	}
 
 	client := &http.Client{}
-	req, err := http.NewRequest("POST", " https://tomr-g17-mdljbaftcq-uc.a.run.app/package/byRegEx", nil)
+	req, err := http.NewRequest("POST", "https://tomr-g17-mdljbaftcq-uc.a.run.app/package/byRegEx", nil)
 	if err != nil {
 		fmt.Println("request error")
 		return
