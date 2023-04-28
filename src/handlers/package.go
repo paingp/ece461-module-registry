@@ -212,7 +212,7 @@ func GetPackageByRegEx(writer http.ResponseWriter, request *http.Request) {
 		given_xAuth = request.Header["X-Authorization"][0]
 
 		type regex_body struct {
-			Regex string `json:"Regex"`
+			Regex string `json:"RegEx"`
 		}
 
 		body, _ := io.ReadAll(request.Body)
@@ -220,7 +220,7 @@ func GetPackageByRegEx(writer http.ResponseWriter, request *http.Request) {
 		var regex regex_body
 		json.Unmarshal(body, &regex)
 
-		regex_string = string(body)
+		regex_string = string(regex.Regex)
 	}
 
 	fmt.Print("Recieved RegEx string correctly in GetPackageByRegex()\n")

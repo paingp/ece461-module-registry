@@ -234,7 +234,7 @@ func GetMetadata(object string) (*storage.ObjectAttrs, error) {
 	}
 	defer client.Close()
 
-	ctx, cancel := context.WithTimeout(ctx, time.Second*10)
+	ctx, cancel := context.WithTimeout(ctx, time.Second*30)
 	defer cancel()
 
 	o := client.Bucket(BucketName).Object(object)
