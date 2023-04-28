@@ -1,38 +1,39 @@
 package frontend
 
 import (
-	"html/template"
-    "net/http"
-    "path"
 	"fmt"
+	"html/template"
+	"io/ioutil"
+	"net/http"
+	"path"
 	"strings"
 )
 
 func RenderHome(w http.ResponseWriter, r *http.Request) {
 	fmt.Println("this is printing")
 	fp := path.Join("template", "index.html")
-    tmpl, err := template.ParseFiles(fp)
-    if err != nil {
-        http.Error(w, err.Error(), http.StatusInternalServerError)
-        return
-    }
+	tmpl, err := template.ParseFiles(fp)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
 
-    if err := tmpl.Execute(w, nil); err != nil {
-        http.Error(w, err.Error(), http.StatusInternalServerError)
-    }
+	if err := tmpl.Execute(w, nil); err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+	}
 }
 
 func RenderReset(w http.ResponseWriter, r *http.Request) {
 	fp := path.Join("template", "reset.html")
-    tmpl, err := template.ParseFiles(fp)
-    if err != nil {
-        http.Error(w, err.Error(), http.StatusInternalServerError)
-        return
-    }
+	tmpl, err := template.ParseFiles(fp)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
 
-    if err := tmpl.Execute(w, nil); err != nil {
-        http.Error(w, err.Error(), http.StatusInternalServerError)
-    }
+	if err := tmpl.Execute(w, nil); err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+	}
 }
 
 func HandleReset(writer http.ResponseWriter, request *http.Request) {
@@ -44,13 +45,11 @@ func HandleReset(writer http.ResponseWriter, request *http.Request) {
 
 	if request.Form["X-Authorization"] != nil {
 		given_xAuth = request.Form["X-Authorization"][0]
-	} 
+	}
 
 	fmt.Println(given_xAuth)
 
-	client := &http.Client{
-	}
-
+	client := &http.Client{}
 
 	req, err := http.NewRequest("DELETE", "http://localhost:8080/reset", nil)
 	if err != nil {
@@ -67,15 +66,15 @@ func HandleReset(writer http.ResponseWriter, request *http.Request) {
 
 func RenderPUTPackage(w http.ResponseWriter, r *http.Request) {
 	fp := path.Join("template", "putPackage.html")
-    tmpl, err := template.ParseFiles(fp)
-    if err != nil {
-        http.Error(w, err.Error(), http.StatusInternalServerError)
-        return
-    }
+	tmpl, err := template.ParseFiles(fp)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
 
-    if err := tmpl.Execute(w, nil); err != nil {
-        http.Error(w, err.Error(), http.StatusInternalServerError)
-    }
+	if err := tmpl.Execute(w, nil); err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+	}
 }
 
 func HandlePUTPackage(writer http.ResponseWriter, request *http.Request) {
@@ -89,7 +88,7 @@ func HandlePUTPackage(writer http.ResponseWriter, request *http.Request) {
 
 	if request.Form["X-Authorization"] != nil {
 		given_xAuth = request.Form["X-Authorization"][0]
-	} 
+	}
 	if request.Form["id"] != nil {
 		id = request.Form["id"][0]
 	}
@@ -99,7 +98,7 @@ func HandlePUTPackage(writer http.ResponseWriter, request *http.Request) {
 
 	client := &http.Client{}
 
-	req, err := http.NewRequest("PUT", "http://localhost:8080/package/" + id, strings.NewReader(body))
+	req, err := http.NewRequest("PUT", "http://localhost:8080/package/"+id, strings.NewReader(body))
 	if err != nil {
 		fmt.Println("request error")
 		return
@@ -117,19 +116,19 @@ func HandlePUTPackage(writer http.ResponseWriter, request *http.Request) {
 
 func RenderAuthenticatePackage(w http.ResponseWriter, r *http.Request) {
 	fp := path.Join("template", "authenticate.html")
-    tmpl, err := template.ParseFiles(fp)
-    if err != nil {
-        http.Error(w, err.Error(), http.StatusInternalServerError)
-        return
-    }
+	tmpl, err := template.ParseFiles(fp)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
 
-    if err := tmpl.Execute(w, nil); err != nil {
-        http.Error(w, err.Error(), http.StatusInternalServerError)
-    }
+	if err := tmpl.Execute(w, nil); err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+	}
 }
 
 func HandleAuthenticatePackage(writer http.ResponseWriter, request *http.Request) {
-	
+
 	request.ParseForm()
 
 	var username string
@@ -145,7 +144,7 @@ func HandleAuthenticatePackage(writer http.ResponseWriter, request *http.Request
 	}
 
 	client := &http.Client{}
-	req, err := http.NewRequest("PUT", "http://localhost:8080/authenticate", nil)
+	req, err := http.NewRequest("PUT", "https://tomr-g17-mdljbaftcq-uc.a.run.app/authenticate", nil)
 	if err != nil {
 		fmt.Println("request error")
 		return
@@ -156,6 +155,14 @@ func HandleAuthenticatePackage(writer http.ResponseWriter, request *http.Request
 
 	resp, err := client.Do(req)
 
-	fmt.Print(resp.Status)
-	writer.Write([]byte(string(resp.Status)))
+	if err != nil {
+		fmt.Print(err)
+	}
+
+	defer resp.Body.Close()
+	body, _ := ioutil.ReadAll(resp.Body) // response body is []byte
+
+	writer.Write([]byte(string(resp.Status) + "\n"))
+	writer.Write([]byte(string(body)))
+
 }
