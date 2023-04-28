@@ -4,8 +4,8 @@ import (
 	"log"
 	"net/http"
 	"os"
-	"tomr/src/handlers"
 	"tomr/frontend"
+	"tomr/src/handlers"
 
 	"github.com/go-chi/chi/v5"
 )
@@ -22,8 +22,17 @@ func main() {
 	router.Get("/UI/reset", frontend.RenderReset)
 	router.Post("/UI/reset", frontend.HandleReset)
 
+	router.Get("/UI/GETpackage", frontend.RenderGETPackage)
+	router.Post("/UI/GETpackage", frontend.HandleGETPackage)
+
 	router.Get("/UI/PUTpackage", frontend.RenderPUTPackage)
 	router.Post("/UI/PUTpackage", frontend.HandlePUTPackage)
+
+	router.Get("/UI/DELETEpackage", frontend.RenderDELETEPackage)
+	router.Post("/UI/DELETEpackage", frontend.HandleDELETEPackage)
+
+	router.Get("/UI/POSTpackage", frontend.RenderPackage)
+	router.Post("/UI/POSTpackage", frontend.HandlePackage)
 
 	router.Get("/UI/authenticate", frontend.RenderAuthenticatePackage)
 	router.Post("/UI/authenticate", frontend.HandleAuthenticatePackage)
@@ -39,12 +48,12 @@ func main() {
 	router.Put("/authenticate", handlers.CreateAuthToken)
 
 	/*
-	router.Get("/", func(writer http.ResponseWriter, request *http.Request) {
-		_, err := writer.Write([]byte("Node Trustworthy Open-source Module Registry -- ECE 461, Team 17"))
-		if err != nil {
-			log.Println(err)
-		}
-	}) */
+		router.Get("/", func(writer http.ResponseWriter, request *http.Request) {
+			_, err := writer.Write([]byte("Node Trustworthy Open-source Module Registry -- ECE 461, Team 17"))
+			if err != nil {
+				log.Println(err)
+			}
+		}) */
 
 	router.Route("/package", func(r chi.Router) {
 		r.Post("/", handlers.CreatePackage)
