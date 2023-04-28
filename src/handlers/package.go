@@ -522,17 +522,19 @@ func ListPackages(writer http.ResponseWriter, request *http.Request) {
 
 	if given_xAuth == auth_success {
 
-		type Pack struct {
-			Version string `json:"Version"`
-			Name    string `json:"Name"`
-		}
+		// type Pack struct {
+		// 	Version string `json:"Version"`
+		// 	Name    string `json:"Name"`
+		// }
 
-		var Packs []Pack
-		c1 := make(chan []Pack, 1)
+		var Packs []models.PackageQuery
+		c1 := make(chan []models.PackageQuery, 1)
 
 		go func() {
+			fmt.Println(request.Body)
 			err := json.NewDecoder(request.Body).Decode(&Packs)
 			if err != nil {
+				fmt.Println("this is the erro")
 				return
 			}
 			c1 <- Packs
