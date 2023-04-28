@@ -7,22 +7,24 @@
         </head>
 
     <body>
-        <h1>/reset:</h1>
-        <a href="index.html">Home</a>
+        <h1>PUT /package/{id}:</h1>
+        <a href="../">Home</a>
         
         <p></p>
 
         <iframe name="hiddenFrame" width="0" height="0" style="display: none;"></iframe>
 
-        <form action="http://localhost:3000/reset", data-method="post", target="hiddenFrame">
-
-            <input type="hidden" name="_method" value="DELETE">
-            <input type="hidden" name="_token" value="{{ csrf_token() }}">
+        <form action="http://localhost:8080/UI/PUTpackage", method="post", target="_blank">
 
             X-Authorization: <input type="text" name="X-Authorization">
             <br><br>
+            id: <input  type="text" name="id">
+            <br><br>
+            Content: <input  type="text" name="Content">
+            <br><br>
             <input type="submit" value="Submit" onclick=>
         </form>
+
     </body>
     
     </html>
