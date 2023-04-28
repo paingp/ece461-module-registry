@@ -98,7 +98,7 @@ func HandlePUTPackage(writer http.ResponseWriter, request *http.Request) {
 
 	client := &http.Client{}
 
-	req, err := http.NewRequest("PUT", "http://localhost:8080/package/"+id, strings.NewReader(body))
+	req, err := http.NewRequest("PUT", "https://tomr-g17-mdljbaftcq-uc.a.run.app/package/"+id, strings.NewReader(body))
 	if err != nil {
 		fmt.Println("request error")
 		return
@@ -110,8 +110,15 @@ func HandlePUTPackage(writer http.ResponseWriter, request *http.Request) {
 
 	resp, err := client.Do(req)
 
-	fmt.Print(resp.Status)
-	writer.Write([]byte(string(resp.Status)))
+	if err != nil {
+		fmt.Print(err)
+	}
+
+	defer resp.Body.Close()
+	resp_body, _ := ioutil.ReadAll(resp.Body) // response body is []byte
+
+	writer.Write([]byte(string(resp.Status) + "\n"))
+	writer.Write([]byte(string(resp_body)))
 }
 
 func RenderAuthenticatePackage(w http.ResponseWriter, r *http.Request) {
