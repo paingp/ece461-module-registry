@@ -30,8 +30,8 @@ func ZipToBase64(zipFile string) ([]byte, error) {
 
 func Base64ToZip(b64string string, zipDirectory string) error {
 
-	// lastIdx := strings.LastIndex(zipDirectory, "/")
-	// os.Mkdir(zipDirectory[:lastIdx], 0777)
+	lastIdx := strings.LastIndex(zipDirectory, "/")
+	os.Mkdir(zipDirectory[:lastIdx], 0777)
 
 	data, err := base64.StdEncoding.DecodeString(b64string)
 	if err != nil {
