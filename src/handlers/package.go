@@ -42,7 +42,7 @@ func CreatePackage(writer http.ResponseWriter, request *http.Request) {
 	if given_xAuth == auth_success {
 		var data models.PackageData
 		body, _ := ioutil.ReadAll(request.Body)
-		fmt.Print(string(body))
+
 		json.Unmarshal(body, &data)
 
 		// if err != nil {
@@ -207,20 +207,25 @@ func GetPackageByRegEx(writer http.ResponseWriter, request *http.Request) {
 
 	if request.Form["X-Authorization"] != nil {
 		given_xAuth = request.Form["X-Authorization"][0]
-		regex_string = request.Form["Regex String"][0]
 	} else {
 		given_xAuth = request.Header["X-Authorization"][0]
 
-		type regex_body struct {
-			Regex string `json:"RegEx"`
+		if request.Header["Regex"] != nil {
+			regex_string = request.Header["Regex"][0]
+			// fmt.Print("regex String is :" + regex_string + "\n")
+		} else {
+			type regex_body struct {
+				Regex string `json:"RegEx"`
+			}
+	
+			body, _ := io.ReadAll(request.Body)
+	
+			var regex regex_body
+			json.Unmarshal(body, &regex)
+	
+			regex_string = string(regex.Regex)
 		}
-
-		body, _ := io.ReadAll(request.Body)
-
-		var regex regex_body
-		json.Unmarshal(body, &regex)
-
-		regex_string = string(regex.Regex)
+		
 	}
 
 	fmt.Print("Recieved RegEx string correctly in GetPackageByRegex()\n")
@@ -515,7 +520,6 @@ func ListPackages(writer http.ResponseWriter, request *http.Request) {
 
 	if request.Form["X-Authorization"] != nil {
 		given_xAuth = request.Form["X-Authorization"][0]
-
 	} else {
 		given_xAuth = request.Header["X-Authorization"][0]
 	}
@@ -539,6 +543,10 @@ func ListPackages(writer http.ResponseWriter, request *http.Request) {
 			}
 			c1 <- Packs
 		}()
+
+		res2 := <-c1
+
+		fmt.Println(res2)
 
 		select {
 		case res := <-c1:
@@ -697,37 +705,37 @@ func CreateAuthToken(writer http.ResponseWriter, request *http.Request) {
 
 	fmt.Print("Entering CreateAuthToken()\n")
 
-	var username string;
-	var password string;
+	var username string
+	var password string
 
 	if request.Header["Username"] == nil {
 		type User_struct struct {
 			Name    string `json:"name"`
 			IsAdmin bool   `json:"isAdmin"`
 		}
-	
+
 		type Secret_struct struct {
 			Password string `json:"password"`
 		}
-	
+
 		type Auth struct {
 			User   User_struct   `json:"user"`
 			Secret Secret_struct `json:"secret"`
 		}
-	
+
 		var auth_struct Auth
 		body, _ := io.ReadAll(request.Body)
 		// fmt.Print(body)
 		json.Unmarshal([]byte(body), &auth_struct)
-	
+
 		if auth_struct == (Auth{}) || auth_struct.User == (User_struct{}) || auth_struct.Secret == (Secret_struct{}) {
 			badRequest(writer, "There is missing field(s) in the AuthenticationRequest or it is formed improperly.")
 			return
 		}
-		
+
 		username = auth_struct.User.Name
-		password =  auth_struct.Secret.Password
-		
+		password = auth_struct.Secret.Password
+
 	} else {
 		username = request.Header["Username"][0]
 		password = request.Header["Password"][0]
