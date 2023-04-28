@@ -554,7 +554,7 @@ func ListPackages(writer http.ResponseWriter, request *http.Request) {
 
 		// res2 := <-c1
 
-		// fmt.Println(res2)
+
 
 		// select {
 		// case res := <-c1:
