@@ -136,6 +136,7 @@ func History(name string, delete int, args ...string) [][]byte {
 
 	regex_str := "^(" + name + `)\((.*?)\)\z`
 	pattern, err := regexp.Compile(regex_str)
+	fmt.Print(regex_str)
 	if err != nil {
 		fmt.Printf("Could not create regex pattern: %v\n", err)
 		return nil
