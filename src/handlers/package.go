@@ -395,12 +395,7 @@ func UpdatePackage(writer http.ResponseWriter, request *http.Request) {
 	var given_xAuth string
 	var id string
 
-	if request.Form["X-Authorization"] != nil {
-		given_xAuth = request.Form["X-Authorization"][0]
-
-	} else {
-		given_xAuth = request.Header["X-Authorization"][0]
-	}
+	given_xAuth = request.Header["X-Authorization"][0]
 
 	id = chi.URLParam(request, "id")
 
@@ -411,11 +406,18 @@ func UpdatePackage(writer http.ResponseWriter, request *http.Request) {
 			return
 		}
 
-		var recieve_package models.Package
-		body, _ := io.ReadAll(request.Body)
-		json.Unmarshal(body, &recieve_package)
+		var content string
 
-		content := recieve_package.Data.Content
+		if request.Header["Content"] != nil {
+			content = request.Header["Content"][0]
+		} else {
+			var recieve_package models.Package
+			body, _ := io.ReadAll(request.Body)
+			json.Unmarshal(body, &recieve_package)
+
+			content = recieve_package.Data.Content
+		}
+
 		//url := recieve_package.Data.URL
 		//jsprogram := recieve_package.Data.JSProgram
 
@@ -693,31 +695,48 @@ func CreateAuthToken(writer http.ResponseWriter, request *http.Request) {
 
 	fmt.Print("Entering CreateAuthToken()\n")
 
-	type User_struct struct {
-		Name    string `json:"name"`
-		IsAdmin bool   `json:"isAdmin"`
+	var username string;
+	var password string;
+
+	if request.Header["Username"] == nil {
+		type User_struct struct {
+			Name    string `json:"name"`
+			IsAdmin bool   `json:"isAdmin"`
+		}
+	
+		type Secret_struct struct {
+			Password string `json:"password"`
+		}
+	
+		type Auth struct {
+			User   User_struct   `json:"user"`
+			Secret Secret_struct `json:"secret"`
+		}
+	
+		var auth_struct Auth
+		body, _ := io.ReadAll(request.Body)
+		// fmt.Print(body)
+		json.Unmarshal([]byte(body), &auth_struct)
+	
+		if auth_struct == (Auth{}) || auth_struct.User == (User_struct{}) || auth_struct.Secret == (Secret_struct{}) {
+			badRequest(writer, "There is missing field(s) in the AuthenticationRequest or it is formed improperly.")
+			return
+		}
+		
+		username = auth_struct.User.Name
+		password =  auth_struct.Secret.Password
+		
+	} else {
+		username = request.Header["Username"][0]
+		password = request.Header["Password"][0]
 	}
 
-	type Secret_struct struct {
-		Password string `json:"password"`
-	}
-
-	type Auth struct {
-		User   User_struct   `json:"user"`
-		Secret Secret_struct `json:"secret"`
-	}
-
-	var auth_struct Auth
-	body, _ := io.ReadAll(request.Body)
-	// fmt.Print(body)
-	json.Unmarshal([]byte(body), &auth_struct)
-
-	if auth_struct == (Auth{}) || auth_struct.User == (User_struct{}) || auth_struct.Secret == (Secret_struct{}) {
+	if username == "" || password == "" {
 		badRequest(writer, "There is missing field(s) in the AuthenticationRequest or it is formed improperly.")
 		return
 	}
 
-	auth_token := utils.Authenticate(auth_struct.User.Name, auth_struct.Secret.Password)
+	auth_token := utils.Authenticate(username, password)
 	fmt.Print("Authentication function passed evaluating now\n")
 
 	if auth_token == "err" {
