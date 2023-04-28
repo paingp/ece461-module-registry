@@ -40,19 +40,31 @@ func CreatePackage(writer http.ResponseWriter, request *http.Request) {
 	}
 
 	if given_xAuth == auth_success {
-		var data models.PackageData
-		body, _ := ioutil.ReadAll(request.Body)
 
-		json.Unmarshal(body, &data)
+		var content string
+		var url string
+		var jsprogram string
 
-		// if err != nil {
-		// 	fmt.Println(err)
-		// 	return
-		// }
+		content = ""
+		url = ""
 
-		content := data.Content
-		url := data.URL
-		jsprogram := data.JSProgram
+		if request.Header["Url"] != nil || request.Header["Content"] != nil {
+			
+
+			content = request.Header["Content"][0]
+			url = request.Header["Url"][0]
+			jsprogram = request.Header["Jsprogram"][0]
+
+		} else {
+			var data models.PackageData
+			body, _ := ioutil.ReadAll(request.Body)
+
+			json.Unmarshal(body, &data)
+
+			content = data.Content
+			url = data.URL
+			jsprogram = data.JSProgram
+		}
 
 		if content == "" && url == "" {
 			badRequest(writer, "There is missing field(s) in the PackageData/AuthenticationToken or "+
@@ -217,15 +229,15 @@ func GetPackageByRegEx(writer http.ResponseWriter, request *http.Request) {
 			type regex_body struct {
 				Regex string `json:"RegEx"`
 			}
-	
+
 			body, _ := io.ReadAll(request.Body)
-	
+
 			var regex regex_body
 			json.Unmarshal(body, &regex)
-	
+
 			regex_string = string(regex.Regex)
 		}
-		
+
 	}
 
 	fmt.Print("Recieved RegEx string correctly in GetPackageByRegex()\n")
@@ -525,11 +537,6 @@ func ListPackages(writer http.ResponseWriter, request *http.Request) {
 	}
 
 	if given_xAuth == auth_success {
-
-		// type Pack struct {
-		// 	Version string `json:"Version"`
-		// 	Name    string `json:"Name"`
-		// }
 
 		var Packs []models.PackageQuery
 		c1 := make(chan []models.PackageQuery, 1)
