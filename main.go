@@ -21,14 +21,16 @@ func main() {
 
 	router.Get("/UI/reset", frontend.RenderReset)
 	router.Post("/UI/reset", frontend.HandleReset)
-	
+
 	router.Get("/UI/PUTpackage", frontend.RenderPUTPackage)
 	router.Post("/UI/PUTpackage", frontend.HandlePUTPackage)
 
 	router.Get("/UI/authenticate", frontend.RenderAuthenticatePackage)
 	router.Post("/UI/authenticate", frontend.HandleAuthenticatePackage)
 
-	router.Get("/regex", frontend.RenderHome)
+	router.Get("/UI/Regex", frontend.RenderRegex)
+	router.Post("/UI/Regex", frontend.HandleRegex)
+
 	router.Get("/", frontend.RenderHome)
 	router.Get("/", frontend.RenderHome)
 	router.Get("/", frontend.RenderHome)
