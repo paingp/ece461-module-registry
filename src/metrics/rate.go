@@ -30,6 +30,15 @@ func RatePackage(url string, pkgDirectory string, rating *models.PackageRating, 
 		ingestion = true
 	}
 
+	(*rating).BusFactor = -1.0
+	(*rating).Correctness = -1.0
+	(*rating).RampUp = -1.0
+	(*rating).ResponsiveMaintainer = -1.0
+	(*rating).LicenseScore = 0.0
+
+	(*rating).GoodPinningPractice = -1.0
+	(*rating).GoodEngineeringProcess = -1.0
+
 	(*rating).BusFactor = getBusFactor(jsonData)
 	if ingestion {
 		if (*rating).BusFactor < 0.5 {

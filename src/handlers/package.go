@@ -54,6 +54,12 @@ func CreatePackage(writer http.ResponseWriter, request *http.Request) {
 		url := data.URL
 		jsprogram := data.JSProgram
 
+		if content == "" && url == "" {
+			badRequest(writer, "There is missing field(s) in the PackageData/AuthenticationToken or "+
+				"it is formed improperly (e.g. Content and URL are both set), or the AuthenticationToken is invalid.")
+			return
+		}
+
 		packageData := models.PackageData{Content: content, URL: url, JSProgram: jsprogram}
 		pkgDir := ""
 		metadata := models.PackageMetadata{}
@@ -206,7 +212,7 @@ func GetPackageByRegEx(writer http.ResponseWriter, request *http.Request) {
 		given_xAuth = request.Header["X-Authorization"][0]
 
 		type regex_body struct {
-			Regex string `json:"Regex"`
+			Regex string `json:"RegEx"`
 		}
 
 		body, _ := io.ReadAll(request.Body)
@@ -214,7 +220,7 @@ func GetPackageByRegEx(writer http.ResponseWriter, request *http.Request) {
 		var regex regex_body
 		json.Unmarshal(body, &regex)
 
-		regex_string = string(body)
+		regex_string = string(regex.Regex)
 	}
 
 	fmt.Print("Recieved RegEx string correctly in GetPackageByRegex()\n")
@@ -350,7 +356,7 @@ func RetrievePackage(writer http.ResponseWriter, request *http.Request) {
 		// version rs[2]
 		// name rs[1]
 
-		attrs, _ := db.GetMetadata(BucketName, id)
+		attrs, _ := db.GetMetadata(id)
 		metadata := attrs.Metadata
 
 		var return_package models.Package
@@ -371,11 +377,9 @@ func RetrievePackage(writer http.ResponseWriter, request *http.Request) {
 
 		writer.WriteHeader(200)
 		writer.Write([]byte(string(b)))
-	} else if given_xAuth == "" || id == "" {
+	} else {
 		badRequest(writer, "There is missing field(s) in the PackageID/AuthenticationToken "+
 			" or it is formed improperly, or the AuthenticationToken is invalid.")
-	} else {
-		writer.Write([]byte("{\n  \"code\": 0,\n  \"message\": \"Other Error\"\n}"))
 	}
 
 	fmt.Print("Properly exiting RetrievePackage()\n")
@@ -407,10 +411,6 @@ func UpdatePackage(writer http.ResponseWriter, request *http.Request) {
 			return
 		}
 
-		fmt.Print("Deleting prior version in RetrievePackage()\n")
-
-		db.DeleteObject(id)
-
 		var recieve_package models.Package
 		body, _ := io.ReadAll(request.Body)
 		json.Unmarshal(body, &recieve_package)
@@ -419,11 +419,16 @@ func UpdatePackage(writer http.ResponseWriter, request *http.Request) {
 		//url := recieve_package.Data.URL
 		//jsprogram := recieve_package.Data.JSProgram
 
-		attrs, err := db.GetMetadata(BucketName, id)
+		attrs, err := db.GetMetadata(id)
 		if err != nil {
+			fmt.Println("This is for paing")
 			fmt.Println(err)
 		}
 		objMetadata := attrs.Metadata
+
+		fmt.Print("Deleting prior version in RetrievePackage()\n")
+
+		db.DeleteObject(id)
 
 		writePath := "src/db/upload.txt"
 		fileWriter, err := os.Create(writePath)
@@ -608,7 +613,7 @@ func RatePackage(writer http.ResponseWriter, request *http.Request) {
 			Correctness          string
 		}
 
-		attrs, _ := db.GetMetadata(BucketName, id)
+		attrs, _ := db.GetMetadata(id)
 		metadata := attrs.Metadata
 
 		var package_ratings ratings

@@ -224,7 +224,7 @@ func SetMetadata(metadata map[string]string, objectName string) error {
 	return nil
 }
 
-func GetMetadata(bucket, object string) (*storage.ObjectAttrs, error) {
+func GetMetadata(object string) (*storage.ObjectAttrs, error) {
 	// bucket := "bucket-name"
 	// object := "object-name"
 	ctx := context.Background()
@@ -234,10 +234,10 @@ func GetMetadata(bucket, object string) (*storage.ObjectAttrs, error) {
 	}
 	defer client.Close()
 
-	ctx, cancel := context.WithTimeout(ctx, time.Second*10)
+	ctx, cancel := context.WithTimeout(ctx, time.Second*30)
 	defer cancel()
 
-	o := client.Bucket(bucket).Object(object)
+	o := client.Bucket(BucketName).Object(object)
 	attrs, err := o.Attrs(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("Object(%q).Attrs: %v", object, err)
