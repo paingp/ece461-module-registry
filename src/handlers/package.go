@@ -10,7 +10,7 @@ import (
 	"path"
 	"regexp"
 	"strconv"
-	"time"
+	// "time"
 
 	"tomr/models"
 	"tomr/src/db"
@@ -42,7 +42,7 @@ func CreatePackage(writer http.ResponseWriter, request *http.Request) {
 	if given_xAuth == auth_success {
 		var data models.PackageData
 		body, _ := ioutil.ReadAll(request.Body)
-		fmt.Print(string(body))
+
 		json.Unmarshal(body, &data)
 
 		// if err != nil {
@@ -207,20 +207,25 @@ func GetPackageByRegEx(writer http.ResponseWriter, request *http.Request) {
 
 	if request.Form["X-Authorization"] != nil {
 		given_xAuth = request.Form["X-Authorization"][0]
-		regex_string = request.Form["Regex String"][0]
 	} else {
 		given_xAuth = request.Header["X-Authorization"][0]
 
-		type regex_body struct {
-			Regex string `json:"RegEx"`
+		if request.Header["Regex"] != nil {
+			regex_string = request.Header["Regex"][0]
+			// fmt.Print("regex String is :" + regex_string + "\n")
+		} else {
+			type regex_body struct {
+				Regex string `json:"RegEx"`
+			}
+	
+			body, _ := io.ReadAll(request.Body)
+	
+			var regex regex_body
+			json.Unmarshal(body, &regex)
+	
+			regex_string = string(regex.Regex)
 		}
-
-		body, _ := io.ReadAll(request.Body)
-
-		var regex regex_body
-		json.Unmarshal(body, &regex)
-
-		regex_string = string(regex.Regex)
+		
 	}
 
 	fmt.Print("Recieved RegEx string correctly in GetPackageByRegex()\n")
@@ -512,10 +517,10 @@ func ListPackages(writer http.ResponseWriter, request *http.Request) {
 	request.ParseForm()
 
 	var given_xAuth string
+	total := 0
 
 	if request.Form["X-Authorization"] != nil {
 		given_xAuth = request.Form["X-Authorization"][0]
-
 	} else {
 		given_xAuth = request.Header["X-Authorization"][0]
 	}
@@ -528,45 +533,67 @@ func ListPackages(writer http.ResponseWriter, request *http.Request) {
 		// }
 
 		var Packs []models.PackageQuery
-		c1 := make(chan []models.PackageQuery, 1)
+		// c1 := make(chan []models.PackageQuery, 1)
 
-		go func() {
-			fmt.Println(request.Body)
-			err := json.NewDecoder(request.Body).Decode(&Packs)
-			if err != nil {
-				fmt.Println("this is the erro")
-				return
-			}
-			c1 <- Packs
-		}()
+		// go func() {
+		// 	fmt.Println(request.Body)
+		// 	err := json.NewDecoder(request.Body).Decode(&Packs)
+		// 	if err != nil {
+		// 		fmt.Println("this is the erro")
+		// 		return
+		// 	}
+		// 	c1 <- Packs
+		// }()
 
-		select {
-		case res := <-c1:
-			writer.WriteHeader(200)
-
-			writer.Write([]byte("[\n"))
-
-			fmt.Print("Searching existing packages in ListPackages()\n")
-
-			for i := 0; i < len(res); i++ {
-				result := utils.Packages(res[i].Version, res[i].Name)
-				writer.Write([]byte("  "))
-
-				writer.Write([]byte(string(result[0])))
-
-				if i != len(res)-1 {
-					writer.Write([]byte(",\n"))
-				}
-			}
-
-			writer.Write([]byte("\n]"))
-		case <-time.After(60 * time.Second):
-
-			fmt.Print("ERROR: Searching existing packages in ListPackages() timed out\n")
-
-			writer.WriteHeader(413)
-			writer.Write([]byte("Too many packages returned."))
+		fmt.Println(request.Body)
+		err := json.NewDecoder(request.Body).Decode(&Packs)
+		if err != nil {
+			fmt.Println("this is the erro")
+			return
 		}
+
+		// res2 := <-c1
+
+		// fmt.Println(res2)
+
+		// select {
+		// case res := <-c1:
+		writer.WriteHeader(200)
+
+		writer.Write([]byte("[\n"))
+
+		fmt.Print("Searching existing packages in ListPackages()\n")
+
+		for i := 0; i < len(Packs); i++ {
+			result := utils.Packages(Packs[i].Version, Packs[i].Name)
+			total += len(result)
+			writer.Write([]byte("  "))
+
+			// writer.Write([]byte(string(result[0])))
+			for i := 0; i < len(result); i++ {
+				writer.Write([]byte(string(result[i])))
+			}
+
+			// if i != len(Packs)-1 {
+			// 	writer.Write([]byte(",\n"))
+			// }
+			if(total >= 30) {
+				break
+			}
+		}
+
+		writer.Write([]byte("\n]"))
+
+		if(total == 0) {
+			writer.Write([]byte("\nNo matching strings!\n"))
+		}
+		// case <-time.After(60 * time.Second):
+
+		// 	fmt.Print("ERROR: Searching existing packages in ListPackages() timed out\n")
+
+		// 	writer.WriteHeader(413)
+		// 	writer.Write([]byte("Too many packages returned."))
+		// }
 
 	} else if given_xAuth == "" {
 		badRequest(writer, "There is missing field(s) in the PackageQuery/AuthenticationToken "+
@@ -697,37 +724,37 @@ func CreateAuthToken(writer http.ResponseWriter, request *http.Request) {
 
 	fmt.Print("Entering CreateAuthToken()\n")
 
-	var username string;
-	var password string;
+	var username string
+	var password string
 
 	if request.Header["Username"] == nil {
 		type User_struct struct {
 			Name    string `json:"name"`
 			IsAdmin bool   `json:"isAdmin"`
 		}
-	
+
 		type Secret_struct struct {
 			Password string `json:"password"`
 		}
-	
+
 		type Auth struct {
 			User   User_struct   `json:"user"`
 			Secret Secret_struct `json:"secret"`
 		}
-	
+
 		var auth_struct Auth
 		body, _ := io.ReadAll(request.Body)
 		// fmt.Print(body)
 		json.Unmarshal([]byte(body), &auth_struct)
-	
+
 		if auth_struct == (Auth{}) || auth_struct.User == (User_struct{}) || auth_struct.Secret == (Secret_struct{}) {
 			badRequest(writer, "There is missing field(s) in the AuthenticationRequest or it is formed improperly.")
 			return
 		}
-		
+
 		username = auth_struct.User.Name
-		password =  auth_struct.Secret.Password
-		
+		password = auth_struct.Secret.Password
+
 	} else {
 		username = request.Header["Username"][0]
 		password = request.Header["Password"][0]
