@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+    <html>
+        <head>
+
+            <title>ece461g17 module-registry</title>
+
+        </head>
+
+    <body>
+        <h1>/packages:</h1>
+        
+        <a href="../">Home</a>
+        
+        <p></p>
+        <form action="http://localhost:8080/UI/packages", method="post", target="_blank">
+            X-Authorization: <input type="text" name="X-Authorization">
+            <br><br>
+            Offset: <input  type="text" name="offset">
+            <br><br>
+            <h2>Body:</h2>
+            Version: <input  type="text" name="version">
+            <br><br>
+            Name: <input  type="text" name="name">
+            <br><br>
+            <input type="submit" value="Submit" onclick=>
+        </form>
+    </body>
+    
+    </html>

@@ -15,9 +15,13 @@ func main() {
 
 	// router.Get("/", frontend.RenderHome)
 	router.Get("/", frontend.RenderHome)
-	router.Get("/UI/package", frontend.RenderReset)
+
+	router.Get("/UI/packages", frontend.RenderPackages)
+	router.Post("/UI/packages", frontend.HandlePackages)
+
 	router.Get("/UI/reset", frontend.RenderReset)
 	router.Post("/UI/reset", frontend.HandleReset)
+	
 	router.Get("/UI/PUTpackage", frontend.RenderPUTPackage)
 	router.Post("/UI/PUTpackage", frontend.HandlePUTPackage)
 
