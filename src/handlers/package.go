@@ -42,11 +42,16 @@ func CreatePackage(writer http.ResponseWriter, request *http.Request) {
 	if given_xAuth == auth_success {
 		var data models.PackageData
 		body, _ := ioutil.ReadAll(request.Body)
+		fmt.Print(string(body))
 		json.Unmarshal(body, &data)
+
+		// if err != nil {
+		// 	fmt.Println(err)
+		// 	return
+		// }
 
 		content := data.Content
 		url := data.URL
-		fmt.Print("URL: " + url + "\n")
 		jsprogram := data.JSProgram
 
 		packageData := models.PackageData{Content: content, URL: url, JSProgram: jsprogram}
@@ -75,7 +80,7 @@ func CreatePackage(writer http.ResponseWriter, request *http.Request) {
 			}
 			metadata.ID = metadata.Name + "(" + metadata.Version + ")"
 
-			fmt.Print("Content (not URL) found for " + string(metadata.ID) +" in CreatePackage()\n")
+			fmt.Print("Content (not URL) found for " + string(metadata.ID) + " in CreatePackage()\n")
 
 			if db.DoesPackageExist(metadata.ID) {
 				writer.WriteHeader(409)
@@ -111,8 +116,8 @@ func CreatePackage(writer http.ResponseWriter, request *http.Request) {
 
 			// Check if package meets criteria for ingestion
 			utils.GetPackageMetadata(pkgDir, &metadata)
-			
-			fmt.Print("URL (not Content) found for " + string(metadata.ID) +" in CreatePackage()\n")
+
+			fmt.Print("URL (not Content) found for " + string(metadata.ID) + " in CreatePackage()\n")
 
 			if db.DoesPackageExist(metadata.ID) {
 				writer.WriteHeader(409)
@@ -281,7 +286,7 @@ func ResetRegistry(writer http.ResponseWriter, request *http.Request) {
 	if given_xAuth == auth_success {
 
 		fmt.Print("Calling db.DeleteObjects() in ResetRegistry()\n")
-    
+
 		err := db.DeleteObjects()
 		if err != nil {
 			internalError(writer, "Failed to delete all objects in bucket", err)
