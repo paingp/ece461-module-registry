@@ -41,9 +41,9 @@ func main() {
 	router.Post("/UI/Regex", frontend.HandleRegex)
 
 	router.Get("/", frontend.RenderHome)
-	router.Get("/", frontend.RenderHome)
-	router.Get("/", frontend.RenderHome)
-	router.Get("/", frontend.RenderHome)
+	// router.Get("/", frontend.RenderHome)
+	// router.Get("/", frontend.RenderHome)
+	// router.Get("/", frontend.RenderHome)
 
 	router.Put("/authenticate", handlers.CreateAuthToken)
 
