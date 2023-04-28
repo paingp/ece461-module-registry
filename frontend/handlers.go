@@ -186,6 +186,59 @@ func HandlePackage(writer http.ResponseWriter, request *http.Request) {
 
 }
 
+func RenderRate(w http.ResponseWriter, r *http.Request) {
+	fp := path.Join("template", "rate.html")
+	tmpl, err := template.ParseFiles(fp)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	if err := tmpl.Execute(w, nil); err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+	}
+}
+
+func HandleRate(writer http.ResponseWriter, request *http.Request) {
+	// Send Delete request
+
+	request.ParseForm()
+
+	var given_xAuth string
+	var id string
+
+	if request.Form["X-Authorization"] != nil {
+		given_xAuth = request.Form["X-Authorization"][0]
+	}
+	if request.Form["id"] != nil {
+		id = request.Form["id"][0]
+	}
+
+	client := &http.Client{}
+
+	req, err := http.NewRequest("GET", "https://tomr-g17-mdljbaftcq-uc.a.run.app/package/"+id+"/rate", nil)
+	if err != nil {
+		fmt.Print(err)
+		fmt.Println("request error")
+		return
+	}
+
+	req.Header.Add("X-Authorization", given_xAuth)
+	req.Header.Add("id", id)
+
+	resp, err := client.Do(req)
+
+	if err != nil {
+		fmt.Print(err)
+	}
+
+	defer resp.Body.Close()
+	resp_body, _ := ioutil.ReadAll(resp.Body) // response body is []byte
+
+	writer.Write([]byte(string(resp.Status) + "\n"))
+	writer.Write([]byte(string(resp_body)))
+}
+
 func RenderDELETEPackage(w http.ResponseWriter, r *http.Request) {
 	fp := path.Join("template", "deletePackage.html")
 	tmpl, err := template.ParseFiles(fp)
@@ -446,4 +499,109 @@ func HandleRegex(writer http.ResponseWriter, request *http.Request) {
 
 	writer.Write([]byte(string(resp.Status) + "\n"))
 	writer.Write([]byte(string(body)))
+}
+
+
+func RenderReturnhistory(w http.ResponseWriter, r *http.Request) {
+	fp := path.Join("template", "history.html")
+	tmpl, err := template.ParseFiles(fp)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	if err := tmpl.Execute(w, nil); err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+	}
+}
+
+func HandleReturnhistory(writer http.ResponseWriter, request *http.Request) {
+	// Send Delete request
+
+	request.ParseForm()
+
+	var given_xAuth string
+	var name string
+
+	if request.Form["X-Authorization"] != nil {
+		given_xAuth = request.Form["X-Authorization"][0]
+	}
+	if request.Form["name"] != nil {
+		name = request.Form["name"][0]
+	}
+
+	client := &http.Client{}
+
+	req, err := http.NewRequest("GET", "https://tomr-g17-mdljbaftcq-uc.a.run.app/package/byName/"+name, nil)
+	if err != nil {
+		fmt.Print(err)
+		fmt.Println("request error")
+		return
+	}
+
+	req.Header.Add("X-Authorization", given_xAuth)
+
+	resp, err := client.Do(req)
+
+	if err != nil {
+		fmt.Print(err)
+	}
+
+	defer resp.Body.Close()
+	resp_body, _ := ioutil.ReadAll(resp.Body) // response body is []byte
+
+	writer.Write([]byte(string(resp.Status) + "\n"))
+	writer.Write([]byte(string(resp_body)))
+}
+
+func RenderDeletehistory(w http.ResponseWriter, r *http.Request) {
+	fp := path.Join("template", "deleteHistory.html")
+	tmpl, err := template.ParseFiles(fp)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	if err := tmpl.Execute(w, nil); err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+	}
+}
+
+func HandleDeletehistory(writer http.ResponseWriter, request *http.Request) {
+	// Send Delete request
+
+	request.ParseForm()
+
+	var given_xAuth string
+	var name string
+
+	if request.Form["X-Authorization"] != nil {
+		given_xAuth = request.Form["X-Authorization"][0]
+	}
+	if request.Form["name"] != nil {
+		name = request.Form["name"][0]
+	}
+
+	client := &http.Client{}
+
+	req, err := http.NewRequest("DELETE", "https://tomr-g17-mdljbaftcq-uc.a.run.app/package/byName/"+name, nil)
+	if err != nil {
+		fmt.Print(err)
+		fmt.Println("request error")
+		return
+	}
+
+	req.Header.Add("X-Authorization", given_xAuth)
+
+	resp, err := client.Do(req)
+
+	if err != nil {
+		fmt.Print(err)
+	}
+
+	defer resp.Body.Close()
+	resp_body, _ := ioutil.ReadAll(resp.Body) // response body is []byte
+
+	writer.Write([]byte(string(resp.Status) + "\n"))
+	writer.Write([]byte(string(resp_body)))
 }

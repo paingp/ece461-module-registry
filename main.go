@@ -34,11 +34,22 @@ func main() {
 	router.Get("/UI/POSTpackage", frontend.RenderPackage)
 	router.Post("/UI/POSTpackage", frontend.HandlePackage)
 
+	router.Get("/UI/Rate", frontend.RenderRate)
+	router.Post("/UI/Rate", frontend.HandleRate)
+
 	router.Get("/UI/authenticate", frontend.RenderAuthenticatePackage)
 	router.Post("/UI/authenticate", frontend.HandleAuthenticatePackage)
 
 	router.Get("/UI/Regex", frontend.RenderRegex)
 	router.Post("/UI/Regex", frontend.HandleRegex)
+
+	/// Additional ////
+	router.Get("/UI/Returnhistory", frontend.RenderReturnhistory)
+	router.Post("/UI/Returnhistory", frontend.HandleReturnhistory)
+
+	router.Get("/UI/Deletehistory", frontend.RenderDeletehistory)
+	router.Post("/UI/Deletehistory", frontend.HandleDeletehistory)
+
 
 	router.Get("/", frontend.RenderHome)
 	// router.Get("/", frontend.RenderHome)
