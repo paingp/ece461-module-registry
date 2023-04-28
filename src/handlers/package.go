@@ -10,7 +10,7 @@ import (
 	"path"
 	"regexp"
 	"strconv"
-	"time"
+	// "time"
 
 	"tomr/models"
 	"tomr/src/db"
@@ -517,6 +517,7 @@ func ListPackages(writer http.ResponseWriter, request *http.Request) {
 	request.ParseForm()
 
 	var given_xAuth string
+	total := 0
 
 	if request.Form["X-Authorization"] != nil {
 		given_xAuth = request.Form["X-Authorization"][0]
@@ -532,49 +533,67 @@ func ListPackages(writer http.ResponseWriter, request *http.Request) {
 		// }
 
 		var Packs []models.PackageQuery
-		c1 := make(chan []models.PackageQuery, 1)
+		// c1 := make(chan []models.PackageQuery, 1)
 
-		go func() {
-			fmt.Println(request.Body)
-			err := json.NewDecoder(request.Body).Decode(&Packs)
-			if err != nil {
-				fmt.Println("this is the erro")
-				return
-			}
-			c1 <- Packs
-		}()
+		// go func() {
+		// 	fmt.Println(request.Body)
+		// 	err := json.NewDecoder(request.Body).Decode(&Packs)
+		// 	if err != nil {
+		// 		fmt.Println("this is the erro")
+		// 		return
+		// 	}
+		// 	c1 <- Packs
+		// }()
 
-		res2 := <-c1
-
-		fmt.Println(res2)
-
-		select {
-		case res := <-c1:
-			writer.WriteHeader(200)
-
-			writer.Write([]byte("[\n"))
-
-			fmt.Print("Searching existing packages in ListPackages()\n")
-
-			for i := 0; i < len(res); i++ {
-				result := utils.Packages(res[i].Version, res[i].Name)
-				writer.Write([]byte("  "))
-
-				writer.Write([]byte(string(result[0])))
-
-				if i != len(res)-1 {
-					writer.Write([]byte(",\n"))
-				}
-			}
-
-			writer.Write([]byte("\n]"))
-		case <-time.After(60 * time.Second):
-
-			fmt.Print("ERROR: Searching existing packages in ListPackages() timed out\n")
-
-			writer.WriteHeader(413)
-			writer.Write([]byte("Too many packages returned."))
+		fmt.Println(request.Body)
+		err := json.NewDecoder(request.Body).Decode(&Packs)
+		if err != nil {
+			fmt.Println("this is the erro")
+			return
 		}
+
+		// res2 := <-c1
+
+
+
+		// select {
+		// case res := <-c1:
+		writer.WriteHeader(200)
+
+		writer.Write([]byte("[\n"))
+
+		fmt.Print("Searching existing packages in ListPackages()\n")
+
+		for i := 0; i < len(Packs); i++ {
+			result := utils.Packages(Packs[i].Version, Packs[i].Name)
+			total += len(result)
+			writer.Write([]byte("  "))
+
+			// writer.Write([]byte(string(result[0])))
+			for i := 0; i < len(result); i++ {
+				writer.Write([]byte(string(result[i])))
+			}
+
+			// if i != len(Packs)-1 {
+			// 	writer.Write([]byte(",\n"))
+			// }
+			if(total >= 30) {
+				break
+			}
+		}
+
+		writer.Write([]byte("\n]"))
+
+		if(total == 0) {
+			writer.Write([]byte("\nNo matching strings!\n"))
+		}
+		// case <-time.After(60 * time.Second):
+
+		// 	fmt.Print("ERROR: Searching existing packages in ListPackages() timed out\n")
+
+		// 	writer.WriteHeader(413)
+		// 	writer.Write([]byte("Too many packages returned."))
+		// }
 
 	} else if given_xAuth == "" {
 		badRequest(writer, "There is missing field(s) in the PackageQuery/AuthenticationToken "+

@@ -29,7 +29,7 @@ func Packages(version string, name string) [][]byte {
 	if name != "*" {
 		regex_str = "^(" + name + `)\((.*?)\)\z`
 	} else {
-		regex_str = "^(" + ".*?" + `)\((.*?)\)\z`
+		regex_str = "(" + ".*?" + `)\((.*?)\)\z`
 	}
 	pattern, err := regexp.Compile(regex_str)
 	if err != nil {
