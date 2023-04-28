@@ -323,7 +323,7 @@ func checkLicenseFromReadMe(directory string) float64 {
 }
 
 func getLicenseScore(license string, pkgDir string, readMe *[]byte) float64 {
-	fmt.Printf("getLicenseScore(%s, %s, nil = %t)\n", license, pkgDir, readMe == nil)
+	// fmt.Printf("getLicenseScore(%s, %s, nil = %t)\n", license, pkgDir, readMe == nil)
 	licenseCompatibility := 0.0
 	if license != "" {
 		matched, err := regexp.MatchString(RegexLicense, license)
