@@ -135,6 +135,8 @@ func GetMetadataFromZip(zipFile string, metadata *models.PackageMetadata, readme
 			}
 		}
 	}
+
+	fmt.Print("Exiting GetMetadataFromZip in utlis.go\n")
 	//fmt.Printf(string(readme))
 	return err
 }
