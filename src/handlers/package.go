@@ -41,6 +41,8 @@ func CreatePackage(writer http.ResponseWriter, request *http.Request) {
 
 	if given_xAuth == auth_success {
 
+		fmt.Print("Passed authentication in CreatePackage()\n")
+
 		var content string
 		var url string
 		var jsprogram string
@@ -66,6 +68,8 @@ func CreatePackage(writer http.ResponseWriter, request *http.Request) {
 			jsprogram = data.JSProgram
 		}
 
+		fmt.Print("CreatePackage() -- URL is:" + url + " Content is: " + content + "\n")
+
 		if content == "" && url == "" {
 			badRequest(writer, "There is missing field(s) in the PackageData/AuthenticationToken or "+
 				"it is formed improperly (e.g. Content and URL are both set), or the AuthenticationToken is invalid.")
@@ -89,8 +93,11 @@ func CreatePackage(writer http.ResponseWriter, request *http.Request) {
 		} else if packageData.Content != "" { // Only Content is set
 			// Decode base64 string into zip
 			pkgDir = path.Join(PkgDirPath, "package.zip")
+			fmt.Print("path.Join passed in CreatePackage()\n")
 			utils.Base64ToZip(packageData.Content, pkgDir)
+			fmt.Print("Base64ToZip passed in CreatePackage()\n")
 			err := utils.GetMetadataFromZip(pkgDir, &metadata, &readMe)
+			fmt.Print("GetMetadataFromZip passed in CreatePackage()\n")
 			if err != nil {
 				internalError(writer, "Failed to extract metadata from zip file", err)
 				os.RemoveAll(PkgDirPath)
@@ -101,6 +108,7 @@ func CreatePackage(writer http.ResponseWriter, request *http.Request) {
 			fmt.Print("Content (not URL) found for " + string(metadata.ID) + " in CreatePackage()\n")
 
 			if db.DoesPackageExist(metadata.ID) {
+				fmt.Print("Package exists already\n")
 				writer.WriteHeader(409)
 				writer.Write([]byte("Package exists already."))
 				os.RemoveAll(PkgDirPath)
@@ -109,6 +117,7 @@ func CreatePackage(writer http.ResponseWriter, request *http.Request) {
 
 			err = metrics.RatePackage(metadata.RepoURL, pkgDir, &rating, metadata.License, &readMe)
 			if err != nil {
+				fmt.Print("Disqualified rating in CreatePackage()\n")
 				writer.WriteHeader(424)
 				writer.Write([]byte("Package is not uploaded due to the disqualified rating."))
 				fmt.Printf("Failed to get metadata from zip file in CreatePackage()\n")
@@ -203,6 +212,8 @@ func CreatePackage(writer http.ResponseWriter, request *http.Request) {
 		fmt.Print("Exiting CreatePackage() successfully after removing temp directories\n")
 
 	} else {
+		fmt.Print("Improper data exitting with 400\n")
+		fmt.Print("Bearer token being used is: " + given_xAuth + "\n")
 		badRequest(writer, "There is missing field(s) in the PackageData/AuthenticationToken or "+
 			"it is formed improperly (e.g. Content and URL are both set), or the AuthenticationToken is invalid.")
 	}

@@ -42,6 +42,7 @@ func RatePackage(url string, pkgDirectory string, rating *models.PackageRating, 
 	(*rating).BusFactor = getBusFactor(jsonData)
 	if ingestion {
 		if (*rating).BusFactor < 0.5 {
+			fmt.Printf("BusFactor score of %f doesn't meet criteria for ingestion", (*rating).BusFactor)
 			return fmt.Errorf("BusFactor score of %f doesn't meet criteria for ingestion", (*rating).BusFactor)
 		}
 	}
@@ -50,6 +51,7 @@ func RatePackage(url string, pkgDirectory string, rating *models.PackageRating, 
 
 	if ingestion {
 		if (*rating).Correctness < 0.5 {
+			fmt.Printf("Correctness score of %f  doesn't meet criteria for ingestion", (*rating).Correctness)
 			return fmt.Errorf("Correctness score of %f  doesn't meet criteria for ingestion", (*rating).Correctness)
 		}
 	}
@@ -57,6 +59,7 @@ func RatePackage(url string, pkgDirectory string, rating *models.PackageRating, 
 	(*rating).RampUp = getRampUp(jsonData, httpClient)
 	if ingestion {
 		if (*rating).RampUp < 0.5 {
+			fmt.Printf("RampUp score of %f doesn't meet for ingestion", (*rating).RampUp)
 			return fmt.Errorf("RampUp score of %f doesn't meet for ingestion", (*rating).RampUp)
 		}
 	}
@@ -64,6 +67,7 @@ func RatePackage(url string, pkgDirectory string, rating *models.PackageRating, 
 	(*rating).ResponsiveMaintainer = getResponsiveMaintainer(jsonData)
 	if ingestion {
 		if (*rating).ResponsiveMaintainer < 0.5 {
+			fmt.Printf("ResponsiveMaintainer score of %f doesn't meet criteria for ingestion", (*rating).ResponsiveMaintainer)
 			return fmt.Errorf("ResponsiveMaintainer score of %f doesn't meet criteria for ingestion", (*rating).ResponsiveMaintainer)
 		}
 	}
@@ -71,6 +75,7 @@ func RatePackage(url string, pkgDirectory string, rating *models.PackageRating, 
 	(*rating).LicenseScore = getLicenseScore(license, pkgDirectory, readMe)
 	if ingestion {
 		if (*rating).LicenseScore < 0.5 {
+			fmt.Printf("License does not meet criteria for ingestion (must be ompatible with LGPLv2.1)")
 			return fmt.Errorf("License does not meet criteria for ingestion (must be ompatible with LGPLv2.1)")
 		}
 	}
