@@ -126,7 +126,7 @@ func CreatePackage(writer http.ResponseWriter, request *http.Request) {
 			}
 
 			writer.WriteHeader(201)
-			writer.Write([]byte("Success. Check the ID in the returned metadata for the official ID."))
+			// writer.Write([]byte("Success. Check the ID in the returned metadata for the official ID."))
 
 		} else { // Only URL is set
 			gitUrl := utils.GetGithubUrl(url)
