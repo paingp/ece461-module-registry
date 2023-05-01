@@ -162,7 +162,7 @@ func CreatePackage(writer http.ResponseWriter, request *http.Request) {
 			pkgDir += ".zip"
 
 			writer.WriteHeader(201)
-			writer.Write([]byte("Success. Check the ID in the returned metadata for the official ID.\n"))
+			// writer.Write([]byte("Success. Check the ID in the returned metadata for the official ID.\n"))
 		}
 
 		fmt.Print("Exiting if-else if condition in CreatePackage()\n")
@@ -327,7 +327,7 @@ func ResetRegistry(writer http.ResponseWriter, request *http.Request) {
 		}
 
 		writer.WriteHeader(200)
-		writer.Write([]byte("Registry is reset."))
+		// writer.Write([]byte("Registry is reset."))
 	} else {
 		badRequest(writer, "There is missing field(s) in the AuthenticationToken "+
 			"or it is formed improperly, or the AuthenticationToken is invalid.")
@@ -482,7 +482,7 @@ func UpdatePackage(writer http.ResponseWriter, request *http.Request) {
 		db.SetMetadata(objMetadata, id)
 
 		writer.WriteHeader(200)
-		writer.Write([]byte("Version is updated"))
+		// writer.Write([]byte("Version is updated"))
 
 	} else {
 		badRequest(writer, "There is missing field(s) in the PackageID/AuthenticationToken "+
@@ -871,7 +871,7 @@ func DeletePackageByName(writer http.ResponseWriter, request *http.Request) {
 		}
 
 		writer.WriteHeader(200)
-		writer.Write([]byte("Package is deleted."))
+		// writer.Write([]byte("Package is deleted."))
 
 	} else {
 		badRequest(writer, "There is missing field(s) in the PackageName/AuthenticationToken "+
