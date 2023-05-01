@@ -314,7 +314,7 @@ func ResetRegistry(writer http.ResponseWriter, request *http.Request) {
 	} else if request.Header["X-Authorization"] != nil {
 		given_xAuth = request.Header["X-Authorization"][0]
 	} else {
-		fmt.Println("this is the issue")
+		// fmt.Println("this is the issue")
 		given_xAuth = ""
 	}
 
