@@ -311,8 +311,11 @@ func ResetRegistry(writer http.ResponseWriter, request *http.Request) {
 	if request.Form["X-Authorization"] != nil {
 		given_xAuth = request.Form["X-Authorization"][0]
 		// given_xAuth = chi.URLParam(request, "auth")
-	} else {
+	} else if request.Header["X-Authorization"] != nil {
 		given_xAuth = request.Header["X-Authorization"][0]
+	} else {
+		fmt.Println("this is the issue")
+		given_xAuth = ""
 	}
 
 	fmt.Print("Passed authentication in ResetRegistry()\n")
