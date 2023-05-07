@@ -2,7 +2,7 @@
 
 Custom NPM Module Registry
 
-##Features Supported
+## Features Supported
 Upload package by providing URL (GitHub or NPM) or by providing a zip file
 Search
 Rate how trustworthy a package is (see metrics in the following section)
@@ -11,7 +11,7 @@ Download package
 Delete package
 Reset Registry
 
-##Metrics:
+## Metrics:
 Correctness: How correct the module’s outputs are for ACME corporation's needs
 Bus Factor - Measurement of risk for continued maintenance of the project
 Responsive Maintainer - How responsive maintainers of the module are
