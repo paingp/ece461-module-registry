@@ -18,15 +18,14 @@ type PackageMetadata struct {
 
 	ID string `json:"ID"`
 
-	License string `json:"License"`
+	License string `json:"License,omitempty"`
 
-	RepoURL string `json:"Homepage"`
+	RepoURL string `json:"Homepage,omitempty"`
 }
 
-type PackageObject struct {
-	Metadata *PackageMetadata `json:"metadata"`
-
-	Data *PackageData `json:"data"`
+type Package struct {
+	Metadata PackageMetadata `json:"Metadata"`
+	Data     PackageData     `json:"Data"`
 }
 
 // Package rating (cf. Project 1).  If the Project 1 that you inherited does not support one or more of the original properties, denote this with the value \"-1\".
@@ -52,4 +51,18 @@ type PackageQuery struct {
 	Version string `json:"Version,omitempty"`
 
 	Name string `json:"Name"`
+}
+
+type PackageHistory struct {
+	Date string `json:"Date"`
+
+	Action string `json:"Action"`
+}
+
+type PackageObject struct {
+	Metadata *PackageMetadata `json:"metadata"`
+
+	Data *PackageData `json:"data"`
+
+	Rating *PackageRating `json:"rating"`
 }

@@ -3,24 +3,33 @@ package metrics
 import (
 	"bytes"
 	"context"
+	"encoding/json"
 	"fmt"
+	"io"
+	"io/fs"
 	"log"
 	"math"
 	"net/http"
+	"os"
+	// "os/exec"
+	"path"
+	"path/filepath"
 	"regexp"
-
-	//"os"
-	"os/exec"
 	"strconv"
 	"strings"
 	"time"
+
+	"tomr/models"
 	"tomr/src/utils"
 
 	"github.com/shurcooL/githubv4"
+	"github.com/hhatto/gocloc"
 )
 
 // var compatibleLicenses = [...]string{"MIT", "LGPLv2.1", "Expat", "X11", "MPL-2.0", "Mozilla Public", "Artistic License 2", "GPLv2", "GPLv3"}
-const RegexLicense = `MIT|LGPLv2.1|Expat|X11|MPL-2.0|Mozilla Public|Artistic License 2|GPLv2|GPLv3`
+const RegexLicense = `(?i)MIT|LGPLv2.1|Expat|X11|MPL-2.0|Mozilla Public|Artistic License 2|GPLv2|GPLv3`
+
+var ReadMePath = ""
 
 func getBusFactor(jsonRes map[string]interface{}) float64 {
 
@@ -136,41 +145,43 @@ func getTotalCommentsGraphQL(jsonRes map[string]interface{}, client *http.Client
 }
 
 func getRampUp(jsonRes map[string]interface{}, client *http.Client) float64 {
-	wiki := 0.0
-	pages := 0.0
+	wiki := 0.25
+	pages := 0.25
 	discussions := 0.0
 
 	// Collecting pertinent data from GITHUB API
 	if jsonRes["has_wiki"].(bool) {
-		wiki = .15
+		wiki = .45
 	}
 
 	if jsonRes["has_pages"].(bool) {
-		pages = .2
+		pages = .5
 	}
 
 	if jsonRes["has_discussions"].(bool) {
-		discussions = .25
+		discussions = .45
 	}
+
+	//fmt.Print("sum", wiki+pages+discussions)
 
 	var commentsScore float32
 	totalComments := getTotalCommentsGraphQL(jsonRes, client)
 
 	// Socring comments count based on different ranges of comments
 	if totalComments >= 0 && totalComments <= 10 {
-		commentsScore = 0.1
+		commentsScore = 0.3
 	} else if totalComments <= 50 {
-		commentsScore = 0.2
+		commentsScore = 0.3
 	} else if totalComments <= 100 {
-		commentsScore = 0.25
+		commentsScore = 0.35
 	} else if commentsScore <= 400 {
-		commentsScore = 0.325
-	} else {
 		commentsScore = 0.4
+	} else {
+		commentsScore = 0.45
 	}
 
 	// Returning weighted sum of aspects
-	return float64(wiki + pages + discussions + float64(commentsScore))
+	return math.Min(float64(wiki+pages+discussions+float64(commentsScore)), 1.0)
 }
 
 func getResponsiveMaintainer(jsonRes map[string]interface{}) float64 {
@@ -210,13 +221,13 @@ func getResponsiveMaintainer(jsonRes map[string]interface{}) float64 {
 
 	// Scoring the update data based on time ranges
 	if 0 < diff.Seconds() && diff.Seconds() <= 604800 { // 7 days timeline
-		updatedLast = .25
+		updatedLast = .45
 	} else if diff.Seconds() <= 15720000 { // 1/2 a year timeline
-		updatedLast = 0.12
+		updatedLast = 0.3
 	} else if diff.Seconds() <= 15720000*2 { // 1 year timeline
-		updatedLast = 0.06
+		updatedLast = 0.2
 	} else if diff.Seconds() <= 15720000*2*2 { //2 years timeline
-		updatedLast = 0.03
+		updatedLast = 0.1
 	} else {
 		updatedLast = 0
 	}
@@ -226,31 +237,49 @@ func getResponsiveMaintainer(jsonRes map[string]interface{}) float64 {
 
 	openIssues := jsonRes["open_issues"].(float64)
 
-	issuesScore := 0.0
+	issuesScore := 0.1
 
 	if hasIssues {
 		issuesScore = 0.35 * math.Min(1, openIssues/350)
 	}
 
 	archivedStatus := jsonRes["archived"].(bool)
-	archivedScore := 0.0
+	archivedScore := 0.05
 
 	if !archivedStatus {
 		archivedScore = 0.2
 	}
 
 	// Returning weighted sum of aspects
-	totalValue := float64(private + updatedLast + float32(issuesScore) + float32(archivedScore))
+	totalValue := math.Min(float64(private+updatedLast+float32(issuesScore)+float32(archivedScore)), 1.0)
 	return totalValue
 }
 
-func checkLicense(readMe *[]byte) float64 {
+func checkLicense(readMe []byte) float64 {
 	licenseCompatibility := 0.0
-	firstIdx := bytes.Index(*readMe, []byte("Licence"))
-	selected := string((*readMe)[firstIdx : firstIdx+200])
+
+	selected := ""
+
+	// fmt.Print("fist" , firstIdx, "last", lastIdx)
+	firstIdx := bytes.Index(readMe, []byte("license"))
+
+	if firstIdx == -1 {
+		return 0
+	}
+	firstIdx -= 15
+
+	lastIdx := len(readMe) - 1
+
+	if (lastIdx - firstIdx) >= 200 {
+		selected = string((readMe)[firstIdx : firstIdx+200])
+		//fmt.Printf(string(selected))
+	} else {
+		selected = string((readMe)[firstIdx:lastIdx])
+		//fmt.Printf(string(selected))
+	}
 	matched, err := regexp.MatchString(RegexLicense, selected)
 	if err != nil {
-		log.Fatal(err)
+		fmt.Println("Error matching regex in checkLicense")
 		return licenseCompatibility
 	}
 	if matched {
@@ -259,27 +288,82 @@ func checkLicense(readMe *[]byte) float64 {
 	return float64(licenseCompatibility)
 }
 
+func checkLicenseFromReadMe(directory string) float64 {
+	fmt.Printf("checkLicenseFromReadMe(%s)", directory)
+	err := filepath.WalkDir(directory, func(path string, d fs.DirEntry, err error) error {
+		maxDepth := 5
+		if err != nil {
+			return err
+		}
+		if d.IsDir() && strings.Count(path, string(os.PathSeparator)) > maxDepth {
+
+			return fs.SkipDir
+		} else {
+			matched, _ := regexp.MatchString(`(?i)readme`, path)
+			if matched {
+				if filepath.Ext(path) == ".md" {
+					ReadMePath = path
+				}
+			}
+		}
+		return nil
+	})
+	if err != nil {
+		fmt.Print(err)
+		return 0.0
+	}
+	//fmt.Print(ReadMePath)
+	readMe, err := os.ReadFile(ReadMePath)
+	if err != nil {
+		log.Fatal(err)
+		return 0.0
+	}
+
+	return checkLicense(readMe)
+}
+
 func getLicenseScore(license string, pkgDir string, readMe *[]byte) float64 {
+	// fmt.Printf("getLicenseScore(%s, %s, nil = %t)\n", license, pkgDir, readMe == nil)
 	licenseCompatibility := 0.0
 	if license != "" {
 		matched, err := regexp.MatchString(RegexLicense, license)
 		if err != nil {
-			log.Fatal(err)
+			fmt.Println("Error matchine regex in getLicenseScore")
+		} else if matched {
+			licenseCompatibility = 1.0
 		}
+	} else if readMe != nil {
+		licenseCompatibility = checkLicense(*readMe)
+	} else {
+		// fmt.Print("here 1")
+		pkgJsonFile, err := os.Open(path.Join(pkgDir, "package.json"))
+		if err != nil {
+			fmt.Printf("Can't find package.json in %s\n", pkgDir)
+			return 0
+		}
+		// fmt.Print("here 2")
+		dec := json.NewDecoder(pkgJsonFile)
+		// fmt.Print("here 3")
+		type elem struct {
+			License string `json:"license"`
+		}
+		var jsonElem elem
+		for {
+			if err := dec.Decode(&jsonElem); err == io.EOF {
+				break
+			}
+		}
+		pkgJsonFile.Close()
+		//fmt.Println("license: ", jsonElem.License)
+		matched, _ := regexp.MatchString(RegexLicense, jsonElem.License)
 		if matched {
 			licenseCompatibility = 1.0
 		}
-		/*
-			for _, l := range compatibleLicenses {
-				if license == l {
-					fmt.Printf("Match with %s", l)
-					licenseCompatibility = 1.0
-				}
-			}
-		*/
-	} else if readMe != nil {
-		licenseCompatibility = checkLicense(readMe)
+		if licenseCompatibility == 0 {
+			licenseCompatibility = checkLicenseFromReadMe(pkgDir)
+		}
 	}
+	//fmt.Print(licenseCompatibility)
 	return licenseCompatibility
 }
 
@@ -324,32 +408,52 @@ func getGoodPinningPractices(url string, client *http.Client) float64 {
 }
 
 func getTotalLines(directory string) int {
-	lines := -1
-	cmd := exec.Command("cloc", "--csv", directory)
+	languages := gocloc.NewDefinedLanguages()
+	options := gocloc.NewClocOptions()
+	paths := []string{
+		"src/metrics/temp",
+	}
 
-	var stdout, stderr bytes.Buffer
-	cmd.Stdout = &stdout
-	cmd.Stderr = &stderr
-
-	err := cmd.Run()
+	processor := gocloc.NewProcessor(languages, options)
+	result, err := processor.Analyze(paths)
 	if err != nil {
-		log.Fatal("Failed to run cloc command")
-		return lines
-	} else if stderr.Len() != 0 {
-		log.Fatalf("Stderr: %s", stderr.String())
+		fmt.Printf("gocloc fail. error: %v\n", err)
+		return -1
 	}
 
-	_, result, found := strings.Cut(stdout.String(), "SUM")
-	if found {
-		clocSum := strings.Split(result, ",")
-		clocSum[3] = strings.Trim(clocSum[3], "\n")
-		blank, _ := strconv.Atoi(clocSum[1])
-		comment, _ := strconv.Atoi(clocSum[2])
-		code, _ := strconv.Atoi(clocSum[3])
-		lines = blank + comment + code
-	}
-	//fmt.Printf("%d", lines)
-	return lines
+	// for _ , item := range result.Files {
+	// 	fmt.Println(item)
+	// }
+	// fmt.Println(result.Files)
+	// fmt.Printf("%+v", result.Total.Code)
+	// total := -1
+	// cmd := exec.Command("go run gocloc-master/cmd/gocloc/main.go", directory)
+
+	// var stdout, stderr bytes.Buffer
+	// cmd.Stdout = &stdout
+	// cmd.Stderr = &stderr
+
+	// err = cmd.Run()
+	// if err != nil {
+	// 	log.Fatal(err)
+	// 	log.Fatal("Failed to run cloc command")
+	// 	return total
+	// } else if stderr.Len() != 0 {
+	// 	log.Fatalf("Stderr: %s", stderr.String())
+	// }
+
+	// _, clocOut, found := strings.Cut(stdout.String(), "TOTAL")
+	// if found {
+	// 	re := regexp.MustCompile(`[0-9]+`)
+	// 	lines := re.FindAllString(clocOut, -1)
+	// 	blank, _ := strconv.Atoi(lines[1])
+	// 	comment, _ := strconv.Atoi(lines[2])
+	// 	code, _ := strconv.Atoi(lines[3])
+	// 	total = blank + comment + code
+	// }
+	// return total
+	fmt.Println(result.Total.Code + result.Total.Comments + result.Total.Blanks + result.Total.Total)
+	return int(result.Total.Code + result.Total.Comments + result.Total.Blanks + result.Total.Total)
 }
 
 func getGoodEngineeringProcess(url string, client *http.Client, pkgDir string) float64 {
@@ -383,7 +487,7 @@ func getGoodEngineeringProcess(url string, client *http.Client, pkgDir string) f
 		return -1
 	}
 
-	fmt.Println(pkgDir)
+	//fmt.Println(pkgDir)
 
 	total := getTotalLines(pkgDir)
 
@@ -397,4 +501,10 @@ func getGoodEngineeringProcess(url string, client *http.Client, pkgDir string) f
 	}
 
 	return sum
+}
+
+func getNetScore(r models.PackageRating) float64 {
+	netScore := ((40 * r.Correctness) + (35 * r.BusFactor) + (30 * r.ResponsiveMaintainer) + (30 * r.RampUp) +
+		(25 * r.LicenseScore) + (15 * r.GoodEngineeringProcess) + (10 * r.GoodPinningPractice)) / 185
+	return netScore
 }

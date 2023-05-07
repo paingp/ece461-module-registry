@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+    <html>
+        <head>
+
+            <title>ece461g17 module-registry</title>
+
+        </head>
+
+    <body>
+        <h1>/packages:</h1>
+        
+        <a href="../">Home</a>
+        
+        <p></p>
+        <form action="https://tomr-g17-mdljbaftcq-uc.a.run.app/UI/packages", method="post", target="_blank">
+            X-Authorization: <input type="text" name="X-Authorization">
+            <br><br>
+            Offset: <input  type="text" name="offset">
+            <br><br>
+            <h3>Body:</h3>
+            Full Body Paste: <input  type="text" name="bodyfull">
+            <br><br>
+            Paste something like this: "[{\"Version\":\"Exact (3.0.0)\nBounded range (1.2.3-2.1.0)\nCarat (^1.2.3)\nTilde (~1.2.0)\",\"Name\":\"mime\"}]"
+            <br><br>
+            <input type="submit" value="Submit" onclick=>
+        </form>
+    </body>
+    
+    </html>

@@ -1,6 +1,9 @@
+#!/usr/bin/env python3
 import sys
 from google.cloud import storage
+import os
 
+os.environ["GCLOUD_PROJECT"] = "ece461-module-registry"
 
 def list_blobs(bucket_name):
     storage_client = storage.Client()
@@ -44,8 +47,10 @@ def delete_bucket(bucket_name):
     print(f"Bucket {bucket.name} deleted")
 
 if __name__ == "__main__":
+
+
     bucket_name = sys.argv[1]
     blobs = list_blobs(bucket_name)
     delete_objects(blobs)
-    delete_bucket(bucket_name)
+    # delete_bucket(bucket_name)
     

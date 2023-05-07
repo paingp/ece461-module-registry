@@ -8,21 +8,19 @@
 
     <body>
         <h1>/reset:</h1>
-        <a href="index.html">Home</a>
+        <a href="../">Home</a>
         
         <p></p>
 
         <iframe name="hiddenFrame" width="0" height="0" style="display: none;"></iframe>
 
-        <form action="http://localhost:3000/reset", data-method="post", target="hiddenFrame">
-
-            <input type="hidden" name="_method" value="DELETE">
-            <input type="hidden" name="_token" value="{{ csrf_token() }}">
+        <form action="https://tomr-g17-mdljbaftcq-uc.a.run.app/UI/reset", method="post", target="_blank">
 
             X-Authorization: <input type="text" name="X-Authorization">
             <br><br>
             <input type="submit" value="Submit" onclick=>
         </form>
+
     </body>
     
     </html>
