@@ -21,7 +21,7 @@ Good Pinning Pracitce - Percentage of dependencies that were pinned
 Good Engineering Process - Percentage of lines of code that were introduced to the repository via code review
 Net Score - weighted average of all metrics above
 
-Team Members:
+Team Members:\
 Matthew Campbell\
 Paing Khant\
 Brian Ng\
