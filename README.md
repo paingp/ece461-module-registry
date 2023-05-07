@@ -22,11 +22,7 @@ Good Engineering Process - Percentage of lines of code that were introduced to t
 Net Score - weighted average of all metrics above
 
 Team Members:
-
 Matthew Campbell
-
 Paing Khant
-
 Brian Ng
-
 Aditya Srikanth
