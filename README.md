@@ -3,12 +3,12 @@
 Custom NPM Module Registry
 
 ## Features Supported
-Upload package by providing URL (GitHub or NPM) or by providing a zip file
-Search
-Rate how trustworthy a package is (see metrics in the following section)
-Update package by providing a zip file
-Download package
-Delete package
+Upload package by providing URL (GitHub or NPM) or by providing a zip file\
+Search\
+Rate how trustworthy a package is (see metrics in the following section)\
+Update package by providing a zip file\
+Download package\
+Delete package\
 Reset Registry
 
 ## Metrics:
